@@ -1,9 +1,12 @@
+import Header from "../components/Header"
+import Speciality from "../components/Speciality"
 
 
 const Home = () => {
   return (
     <div>
-      Homepage
+      <Header />
+      <Speciality />
     </div>
   )
 }
