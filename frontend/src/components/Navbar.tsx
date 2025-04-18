@@ -10,8 +10,14 @@ function Navbar() {
   const [token, setToken] = useState(true);
 
   return (
-    <div className='flex items-center justify-between text-sm py-0 mb-5 border-b border-b-gray-400'>
-      <img src={logo} alt="Logo" className="w-30 h-auto cursor-pointer" />
+<div className="flex items-center justify-between px-6 py-2 bg-white shadow-sm rounded-xl mb-4 border border-gray-200">
+      {/* Logo */}
+      <img
+        src={logo}
+        alt="Logo"
+        className="w-24 cursor-pointer transition-transform duration-300 hover:scale-105"
+        onClick={() => navigate('/')}
+      />
 
       <ul className='hidden md:flex items-start gap-5 font-medium'>
         {[
@@ -42,13 +48,13 @@ function Navbar() {
       <div className='flex items-center gap-4'>
         {token ? (
           <div className='flex items-center gap-2 cursor-pointer group relative'>
-            <img className='w-8 rounded-full' src={prof} alt='Profile' />
+            <img   className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow"src={prof} alt='Profile' />
             <img className='w-4' src={drop} alt='Dropdown icon' />
             <div className='absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block'>
-              <div className='min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4'>
+            <div className='min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4'>
                 <p onClick={() => navigate('my-profile')} className='hover:text-black cursor-pointer'>My Profile</p>
                 <p onClick={() => navigate('my-appointments')} className='hover:text-black cursor-pointer'>My Appointment</p>
-                <p onClick={() => setToken(false)} className='hover:text-black cursor-pointer'>Logout</p>
+                <p onClick={() => setToken(false)} className="hover:text-red-500 cursor-pointer">Logout</p>
               </div>
             </div>
           </div>

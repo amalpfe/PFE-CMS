@@ -1,5 +1,6 @@
 import Header from "../components/Header"
 import Speciality from "../components/Speciality"
+import TopDoctors from "../components/TopDoctors"
 
 
 const Home = () => {
@@ -7,6 +8,7 @@ const Home = () => {
     <div>
       <Header />
       <Speciality />
+      <TopDoctors />
     </div>
   )
 }

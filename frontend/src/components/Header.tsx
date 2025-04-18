@@ -1,29 +1,44 @@
-import grp from '../assets/grpp.jpeg';
+import grp from '../assets/grpimage.png';
 import arrow from '../assets/arrow.png';
 import header from '../assets/drgrp.png';
 
 function Header() {
   return (
-    <div className="flex flex-col md:flex-row flex-wrap bg-purple-700 rounded-lg px-6 md:px-10 lg:px-20">
-        <div className='md:w-1/2 flex flex-col items-start justify-center gap-4 py-10 m-auto md:py-[10vw] md:mb-[-30px]'>
-         <p className='text-3xl md:text-4xl lg:text-5xl text-white font-semibold leading-tight md:leading'>
-            Book Appointment <br /> With Trusted Doctors
-         </p>
-         <div className='flex flex-col md:flex-row items-center gap-3 text-white text-sm font-light'>
-         <img src={grp} alt=""  className="w-15 h-auto mb-1" />
-           <p>Simply browse through our extensive list of trusted doctors,<br className='hidden sm:block' /> schedule your appointment hassle-free.</p>
-         </div>
-         <a href="#speciality" className='flex items-center gap-2 bg-white px-8 py-3 rounded-full text-gray-600 text-sm m-auto md:m-0 hover:scale-105 transition-all duration-300'>
-            Book Appointment <img className="w-3.5" src={arrow} alt=""/>
-         </a>
-          </div>
-          
-        <div className='md:w-1/2 relative'>
-         <img className='w-full md:absolute bottom-0 h-auto rounded-lg' src={header} alt=""/>
-        </div>
+    <div className="flex flex-col md:flex-row bg-gradient-to-r from-purple-700 via-purple-600 to-purple-800 rounded-2xl px-6 md:px-10 lg:px-20 shadow-xl overflow-hidden">
       
+      {/* Left Section */}
+      <div className="md:w-1/2 flex flex-col items-start justify-center gap-6 py-14 md:py-[8vw] text-white z-10">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-md">
+          Book Appointment <br /> With Trusted Doctors
+        </h1>
+
+        <div className="flex flex-col md:flex-row items-center gap-3 text-white text-base font-light">
+          <img src={grp} alt="group" className="w-20 h-auto" />
+          <p className="text-sm md:text-base">
+            Simply browse through our extensive list of trusted doctors,
+            <br className="hidden sm:block" />
+            schedule your appointment hassle-free.
+          </p>
+        </div>
+
+        <a
+          href="#speciality"
+          className="flex items-center gap-2 bg-white px-6 py-3 rounded-full text-purple-700 text-sm font-medium hover:scale-105 shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          Book Appointment <img className="w-4" src={arrow} alt="arrow" />
+        </a>
+      </div>
+
+      {/* Right Section */}
+      <div className="md:w-1/2 relative flex items-end justify-center">
+        <img
+          className="w-full md:w-[90%] max-h-[450px] object-contain rounded-b-xl md:absolute md:bottom-0 drop-shadow-2xl"
+          src={header}
+          alt="doctor group"
+        />
+      </div>
     </div>
-  )
+  );
 }
 
-export default Header
+export default Header;
