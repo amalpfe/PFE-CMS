@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { AppContext } from "../context/AppContext"; // Import AppContext
-
+//edit
 const MyAppointments = () => {
   // Use the context safely by checking if it's defined
   const context = useContext(AppContext);
