@@ -18,13 +18,23 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/doctors" element={<Doctor />} />
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0e76cb1dbf2520367a084f052dce0a9cb8d8c25b
         <Route path="/doctors/:speciality" element={<Doctor />} />
        <Route path="/login" element={<Login />} />
        <Route path="/about" element={<About />} />
        <Route path="/contact" element={<Contact />} />
        <Route path="/my-profile" element={<MyProfile />} />
+<<<<<<< HEAD
        <Route path="/my-appoitments" element={<MyAppointments />} />
       <Route path="/appointment/:docId" element={<Appointment />} />
+=======
+       <Route path="/my-appointments" element={<MyAppointments />} />
+       <Route path="/appoitment/:docId" element={<Appointment />} />
+      </Routes>
+>>>>>>> 0e76cb1dbf2520367a084f052dce0a9cb8d8c25b
 
       </Routes>
         <Footer />

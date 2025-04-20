@@ -7,7 +7,6 @@ interface AppContextType {
   
 }
 
-
 // Create the context with an initial empty value
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
