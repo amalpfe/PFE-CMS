@@ -1,21 +1,21 @@
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import appointmentImg from '../assets/appointment_img.png';
 
 const Banner = () => {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col md:flex-row bg-gradient-to-r from-purple-700 via-purple-600 to-purple-800 rounded-2xl px-6 md:px-10 lg:px-20 my-20 md:mx-10 shadow-xl overflow-hidden">
       {/* Left side */}
       <div className="md:w-1/2 flex flex-col items-start justify-center gap-6 py-14 md:py-[8vw] text-white z-10">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-md">
-          Book Appointment <br /> With Trusted Doctors
+          Book Appointment <br />
+           With Trusted Doctors
         </h1>
-        <a
-          href="#speciality"
-          className="flex items-center gap-2 bg-white px-6 py-3 rounded-full text-purple-700 text-sm font-medium hover:scale-105 shadow-lg hover:shadow-xl transition-all duration-300"
+      <button onClick={()=>{navigate('/login'); scrollTo(0,0)}}
+         className="flex items-center gap-2 bg-white px-6 py-3 rounded-full text-purple-700 text-sm font-medium hover:scale-105 shadow-lg hover:shadow-xl transition-all duration-300"
         >
-          Book Appointment
-          <img className="w-4" alt="arrow" src="/src/assets/arrow.png" />
-        </a>
+          Create Account
+       </button>
       </div>
 
       {/* Right side */}

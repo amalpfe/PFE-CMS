@@ -4,7 +4,9 @@ import { doctors } from "../assets/assets";
 // Define the shape of the context
 interface AppContextType {
   doctors: typeof doctors;
+  
 }
+
 
 // Create the context with an initial empty value
 export const AppContext = createContext<AppContextType | undefined>(undefined);

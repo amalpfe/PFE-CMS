@@ -8,4 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    // 👇 This ensures routes like /appointment/doc10 don't break on refresh
+    fs: {
+      strict: false
+    },
+  }
 })

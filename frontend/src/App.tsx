@@ -6,9 +6,9 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import MyProfile from "./pages/MyProfile";
 import MyAppointments from "./pages/MyAppointments";
-import Appointment from "./pages/Appointment";
 import Navbar from "./components/Navbar";
-
+import Footer from "./components/Fotter";
+import Appointment from "./pages/Appointment";
 function App() {
 
   return (
@@ -18,16 +18,16 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/doctors" element={<Doctor />} />
-       
         <Route path="/doctors/:speciality" element={<Doctor />} />
        <Route path="/login" element={<Login />} />
        <Route path="/about" element={<About />} />
        <Route path="/contact" element={<Contact />} />
        <Route path="/my-profile" element={<MyProfile />} />
        <Route path="/my-appoitments" element={<MyAppointments />} />
-       <Route path="/appoitment/:docId" element={<Appointment />} />
-      </Routes>
+      <Route path="/appointment/:docId" element={<Appointment />} />
 
+      </Routes>
+        <Footer />
     </div>
     </>
   )
