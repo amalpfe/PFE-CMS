@@ -1,6 +1,7 @@
 import { useState, ChangeEvent } from "react";
 import img from "../assets/profile_pic.png";
-//edit
+import { motion } from "framer-motion"; // Import framer-motion for transitions
+
 type Address = {
   line1: string;
   line2: string;
@@ -42,13 +43,25 @@ const MyProfile = () => {
     }));
   };
 
+  // Animation variants for smooth transition effects
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { duration: 0.4, ease: "easeInOut" },
+    },
+  };
+
   return (
     <div className="max-w-4xl mx-auto my-10 p-6 bg-white rounded-2xl shadow-xl text-gray-800">
       <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start border-b pb-6">
-        <img
+        <motion.img
           src={userData.image}
           alt="Profile"
           className="w-32 h-32 rounded-full object-cover border-4 border-purple-200 shadow"
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
         />
         <div className="flex-1 text-center sm:text-left">
           {isEdit ? (
@@ -68,7 +81,12 @@ const MyProfile = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
         {/* Contact Section */}
-        <div>
+        <motion.div
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.2 }}
+        >
           <h3 className="text-lg font-semibold mb-3 text-purple-700">Contact Info</h3>
           <div className="mb-3">
             <label className="font-medium text-gray-600">Phone</label>
@@ -120,10 +138,15 @@ const MyProfile = () => {
               </p>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Basic Info Section */}
-        <div>
+        <motion.div
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.4 }}
+        >
           <h3 className="text-lg font-semibold mb-3 text-purple-700">Basic Info</h3>
           <div className="mb-3">
             <label className="font-medium text-gray-600">Gender</label>
@@ -156,24 +179,30 @@ const MyProfile = () => {
               <p className="mt-1">{userData.dob}</p>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <div className="mt-6 flex justify-end">
         {isEdit ? (
-          <button
+          <motion.button
             onClick={() => setIsEdit(false)}
             className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition duration-300"
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
           >
-           Save
-          </button>
+            Save
+          </motion.button>
         ) : (
-          <button
+          <motion.button
             onClick={() => setIsEdit(true)}
             className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition duration-300"
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
           >
-          Edit Profile
-          </button>
+            Edit Profile
+          </motion.button>
         )}
       </div>
     </div>
