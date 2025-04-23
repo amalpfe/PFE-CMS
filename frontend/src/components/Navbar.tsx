@@ -19,31 +19,38 @@ function Navbar() {
         onClick={() => navigate('/')}
       />
 
-      <ul className='hidden md:flex items-start gap-5 font-medium'>
-        {[
-          { label: 'HOME', to: '/' },
-          { label: 'ALL DOCTORS', to: '/doctors' },
-          { label: 'ABOUT', to: '/about' },
-          { label: 'CONTACT', to: '/contact' },
-        ].map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => isActive ? 'text-purple-700' : ''}
-          >
-            <li className='py-2 relative group cursor-pointer'>
-              {item.label}
-              <span
-      className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 w-3/5 bg-purple-700 transition-opacity duration-200 ${
-        location.pathname === item.to
-          ? 'opacity-100'
-          : 'opacity-0 group-hover:opacity-60'
-      }`}
-    ></span>
-            </li>
-          </NavLink>
-        ))}
-      </ul>
+<ul className='hidden md:flex items-start gap-5 font-medium'>
+  {[
+    { label: 'HOME', to: '/' },
+    { label: 'ALL DOCTORS', to: '/doctors', requiresAuth: true },
+    { label: 'ABOUT', to: '/about' },
+    { label: 'CONTACT', to: '/contact' },
+  ].map((item) => (
+    <li
+      key={item.to}
+      className='py-2 relative group cursor-pointer'
+      onClick={() => {
+        if (item.requiresAuth && !token) {
+          alert('Please login to access this page.');
+        } else {
+          navigate(item.to);
+        }
+      }}
+    >
+      <span className={`${location.pathname === item.to ? 'text-purple-700' : ''}`}>
+        {item.label}
+      </span>
+      <span
+        className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 w-3/5 bg-purple-700 transition-opacity duration-200 ${
+          location.pathname === item.to
+            ? 'opacity-100'
+            : 'opacity-0 group-hover:opacity-60'
+        }`}
+      ></span>
+    </li>
+  ))}
+</ul>
+
       <a 
   href="/assistant" 
   className="text-purple-700 hover:text-purple-900 font-semibold text-lg py-2 px-4 rounded-lg hover:bg-purple-100 transition duration-300"
@@ -60,6 +67,11 @@ function Navbar() {
             <div className='min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4'>
                 <p onClick={() => navigate('my-profile')} className='hover:text-black cursor-pointer'>My Profile</p>
                 <p onClick={() => navigate('my-appointments')} className='hover:text-black cursor-pointer'>My Appointment</p>
+                {token && (
+    <p onClick={() => navigate('medical-reports')} className='hover:text-black cursor-pointer'>
+      Medical Reports
+    </p>
+  )}
                 <p onClick={() => setToken(false)} className="hover:text-red-500 cursor-pointer">Logout</p>
               </div>
             </div>

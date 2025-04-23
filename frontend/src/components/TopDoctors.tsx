@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 
@@ -8,13 +8,28 @@ interface DoctorType {
   name: string;
   speciality: string;
   Image: string;
-  // Add other fields if needed
 }
 
 function TopDoctors() {
   const navigate = useNavigate();
   const context = useContext(AppContext);
   const doctors: DoctorType[] = context?.doctors || [];
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!token);
+  }, []);
+
+  const handleDoctorClick = (id: string) => {
+    if (!isLoggedIn) {
+      alert('🔒 Please log in to book an appointment.');
+      navigate('/login');
+    } else {
+      navigate(`/appointment/${id}`);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4 my-16 text-gray-900 md:mx-10">
@@ -23,11 +38,11 @@ function TopDoctors() {
         Simply browse through our extensive list of trusted doctors.
       </p>
 
-      {/* Responsive Grid */}
+      {/* Grid of doctors */}
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pt-6 px-3 sm:px-0">
         {doctors.slice(0, 10).map((item, index) => (
           <div
-            onClick={() => navigate(`/appointment/${item._id}`)}
+            onClick={() => handleDoctorClick(item._id)}
             key={index}
             className="border border-blue-200 rounded-xl overflow-hidden shadow-md bg-white cursor-pointer hover:-translate-y-2 transition-transform duration-300"
           >
@@ -51,8 +66,13 @@ function TopDoctors() {
       {/* More Button */}
       <button
         onClick={() => {
-          navigate('/doctors');
-          window.scrollTo(0, 0); // ✅ Better use of scrollTo
+          if (!isLoggedIn) {
+            alert('🔒 Please log in to view more doctors.');
+            navigate('/login');
+          } else {
+            navigate('/doctors');
+            window.scrollTo(0, 0);
+          }
         }}
         className="mt-8 px-6 py-2 bg-purple-700 text-white text-sm rounded-full hover:bg-purple-600 transition duration-300 shadow-md"
       >

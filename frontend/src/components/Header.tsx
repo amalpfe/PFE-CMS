@@ -1,11 +1,38 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import grp from '../assets/grpimage.png';
 import arrow from '../assets/arrow.png';
 import header from '../assets/drgrp.png';
 
 function Header() {
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!token);
+  }, []);
+
+  const handleBookingClick = () => {
+    if (!isLoggedIn) {
+      setShowWarning(true);
+      setTimeout(() => setShowWarning(false), 3000); // Hide after 3s
+    } else {
+      navigate('/doctors');
+    }
+  };
+
   return (
-    <div className="flex flex-col md:flex-row bg-gradient-to-r from-purple-700 via-purple-600 to-purple-800 rounded-2xl px-6 md:px-10 lg:px-20 shadow-xl overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-gradient-to-r from-purple-700 via-purple-600 to-purple-800 rounded-2xl px-6 md:px-10 lg:px-20 shadow-xl overflow-hidden relative">
       
+      {/* Warning Message */}
+      {showWarning && (
+        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-md z-50">
+          Please log in to book an appointment.
+        </div>
+      )}
+
       {/* Left Section */}
       <div className="md:w-1/2 flex flex-col items-start justify-center gap-6 py-14 md:py-[8vw] text-white z-10">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-md">
@@ -21,12 +48,12 @@ function Header() {
           </p>
         </div>
 
-        <a
-          href="#speciality"
+        <button
+          onClick={handleBookingClick}
           className="flex items-center gap-2 bg-white px-6 py-3 rounded-full text-purple-700 text-sm font-medium hover:scale-105 shadow-lg hover:shadow-xl transition-all duration-300"
         >
           Book Appointment <img className="w-4" src={arrow} alt="arrow" />
-        </a>
+        </button>
       </div>
 
       {/* Right Section */}
