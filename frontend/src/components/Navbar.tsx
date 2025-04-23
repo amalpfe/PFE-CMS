@@ -44,6 +44,12 @@ function Navbar() {
           </NavLink>
         ))}
       </ul>
+      <a 
+  href="/assistant" 
+  className="text-purple-700 hover:text-purple-900 font-semibold text-lg py-2 px-4 rounded-lg hover:bg-purple-100 transition duration-300"
+>
+  AI Assistant
+</a>
 
       <div className='flex items-center gap-4'>
         {token ? (
@@ -66,6 +72,9 @@ function Navbar() {
             Create account
           </button>
         )}
+       
+
+
       </div>
     </div>
   );

@@ -13,5 +13,6 @@ export default defineConfig({
     fs: {
       strict: false
     },
+    port:5173
   }
 })
