@@ -8,7 +8,7 @@ function Speciality() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    setIsLoggedIn(!token);
+    setIsLoggedIn(!!token);
   }, []);
 
   return (

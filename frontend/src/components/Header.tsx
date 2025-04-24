@@ -11,7 +11,7 @@ function Header() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    setIsLoggedIn(!token);
+    setIsLoggedIn(!!token);
   }, []);
 
   const handleBookingClick = () => {

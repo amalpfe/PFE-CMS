@@ -1,6 +1,5 @@
 import { createContext, ReactNode } from "react";
 import { doctors } from "../assets/assets";
-//edit
 
 // Define the doctor type
 export interface Doctor {
@@ -21,6 +20,7 @@ export interface Doctor {
 // Define the context type
 interface AppContextType {
   doctors: Doctor[];
+  currencySymbol: string;
 }
 
 // Create the context with an initial undefined value
@@ -33,13 +33,14 @@ interface AppContextProviderProps {
 
 // Provider component
 const AppContextProvider: React.FC<AppContextProviderProps> = ({ children }) => {
+  const currencySymbol = '$';
+
   const value: AppContextType = {
     doctors,
+    currencySymbol,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export default AppContextProvider;
-
-
