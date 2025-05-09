@@ -14,7 +14,7 @@ const containerVariant = {
     },
   },
 };
-
+//update
 const About = () => {
   return (
     <motion.div

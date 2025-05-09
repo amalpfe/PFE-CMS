@@ -11,6 +11,7 @@ import Footer from "./components/Fotter";
 import Appointment from "./pages/Appointment";
 import Careers from "./pages/careers";
 import Assistant from "./pages/Assistant"
+import SignUp from "./pages/Signup";
 function App() {
   return (
     <>
@@ -19,8 +20,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/doctors" element={<Doctor />} />
-          <Route path="/doctors/:specialty" element={<Doctor />} />
+          <Route path="/doctors/:speciality" element={<Doctor />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
           <Route path="/about" element={<About />} />
           
           <Route path="/contact" element={<Contact />} />

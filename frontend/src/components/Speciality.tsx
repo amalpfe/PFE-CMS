@@ -1,16 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+// import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { specialityData } from '../assets/assets';
 
 function Speciality() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-  }, []);
-
   return (
     <div
       id="speciality"
@@ -22,18 +14,6 @@ function Speciality() {
         schedule your appointment hassle-free.
       </p>
 
-      {!isLoggedIn ? (
-        <p className="mt-10 text-red-600 font-medium text-center">
-          🔒 You must{' '}
-          <span
-            className="underline cursor-pointer text-purple-700"
-            onClick={() => navigate('/login')}
-          >
-            log in
-          </span>{' '}
-          to explore specialties and book appointments.
-        </p>
-      ) : (
         <div className="flex sm:justify-center gap-6 w-full overflow-x-auto scrollbar-hide px-4 mt-6">
           {specialityData.map((item, index) => (
             <Link
@@ -53,7 +33,7 @@ function Speciality() {
             </Link>
           ))}
         </div>
-      )}
+      
     </div>
   );
 }

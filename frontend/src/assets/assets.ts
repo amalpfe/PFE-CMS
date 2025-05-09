@@ -1,5 +1,5 @@
 // Define an interface for type safety
-interface specialty {
+interface speciality {
     speciality: string;
     image: string; // or appropriate type if it's an imported asset (e.g., StaticImageData for Next.js)
   }
@@ -12,7 +12,7 @@ interface specialty {
   import Neurologist from '../assets/Neurologist.svg';
   import Dermatologist from '../assets/Dermatologist.svg';
   
-  export const specialityData: specialty[] = [
+  export const specialityData: speciality[] = [
     {
       speciality: 'General Physician',
       image: General_physician
@@ -60,6 +60,7 @@ interface specialty {
     experience: string;
     about: string;
     fees: number;
+    
     address: {
       line1: string;
       line2: string;

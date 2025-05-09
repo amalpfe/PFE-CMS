@@ -9,6 +9,7 @@ interface DoctorType {
   speciality: string;
   Image: string;
 }
+//update
 
 const Doctor = () => {
   const { speciality } = useParams<{ speciality: string }>();

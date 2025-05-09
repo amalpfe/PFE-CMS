@@ -3,7 +3,7 @@ import './index.css';
 import App from './App.tsx';
 import { BrowserRouter } from 'react-router-dom';
 import AppContextProvider from './context/AppContext'; // ✅ import the context provider
-
+//update
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <AppContextProvider> {/* ✅ Wrap your app with this */}
