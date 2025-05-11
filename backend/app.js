@@ -10,6 +10,9 @@ app.use(cors());
 app.use('/patient', PatientRoutes);
 // app.use('/admin', AdminRoutes);
 
+
+const chatRoutes = require("./src/routes/ChatRoutes");
+app.use("/api", chatRoutes);
 // Set up the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -82,7 +82,187 @@ const handleLogin = async (req, res) => {
   }
 };
 
+//Handle doctors page
+const getAllDoctors = async (req, res) => {
+  const query = `SELECT id, CONCAT(firstName, ' ', lastName) AS name, specialty AS speciality, image AS Image FROM doctor`;
+
+  try {
+    const [results] = await pool.query(query);
+    res.status(200).json(results);
+  } catch (err) {
+    console.error("Error fetching doctors:", err);
+    res.status(500).json({ message: "Failed to fetch doctors", error: err });
+  }
+};
+
+const getDoctorDetails = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Fetch doctor details
+    const [doctorResult] = await pool.query(
+      `SELECT id, CONCAT(firstName, ' ', lastName) AS name, 
+              specialty AS speciality, phoneNumber, email, address, 
+              degree, fees, experience, about, image AS Image
+       FROM doctor
+       WHERE id = ?`,
+      [id]
+    );
+
+    if (doctorResult.length === 0) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    const doctor = doctorResult[0];
+
+    // Fetch doctor availability
+    const [availabilityResult] = await pool.query(
+      `SELECT dayOfWeek, startTime, endTime
+       FROM doctoravailability
+       WHERE doctorId = ?`,
+      [id]
+    );
+
+    doctor.availability = availabilityResult;
+
+    return res.status(200).json(doctor);
+  } catch (err) {
+    console.error("Error fetching doctor details:", err);
+    return res.status(500).json({
+      message: "Failed to fetch doctor details",
+      error: err.message,
+    });
+  }
+};
+const handleApp = async (req, res) => {
+
+const { patientId, doctorId, appointmentDate } = req.body;
+
+  if (!patientId || !doctorId || !appointmentDate) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const [result] = await pool.execute(
+      `INSERT INTO appointment 
+       (patientId, doctorId, appointmentDate, appointmentStatus, createdAt, updatedAt) 
+       VALUES (?, ?, ?, 'Scheduled', NOW(), NOW())`,
+      [patientId, doctorId, appointmentDate || null]
+    );
+
+    res.status(201).json({
+      message: "Appointment booked successfully",
+      appointmentId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error booking appointment:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const addReview = async (req, res) => {
+  const { appointmentId, patientId, rating, comment } = req.body;
+
+  if (!appointmentId || !patientId || !rating || !comment) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    // تحقق أولاً أن الـ appointment موجود ومرتبط بنفس المريض
+    const [appointments] = await pool.execute(
+      "SELECT * FROM appointment WHERE id = ? AND patientId = ?",
+      [appointmentId, patientId]
+    );
+
+    if (appointments.length === 0) {
+      return res.status(404).json({ message: "Appointment not found or mismatch" });
+    }
+
+    // إدخال التقييم
+    await pool.execute(
+      `INSERT INTO feedback (appointmentId, patientId, rating, comment, submittedAt)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [appointmentId, patientId, rating, comment]
+    );
+
+    res.status(201).json({ message: "Review submitted successfully" });
+  } catch (err) {
+    console.error("Error adding review:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getAppointmentsByPatient = async (req, res) => {
+  const { patientId } = req.params;
+
+  try {
+    const [appointments] = await pool.execute(
+      `
+      SELECT 
+        a.id AS appointmentId,
+        a.appointmentDate,
+        a.appointmentStatus,
+        a.notes,
+        d.id AS doctorId,
+        CONCAT(firstName, ' ', lastName) AS doctorName,
+        d.specialty,
+        d.image AS doctorImage,
+        d.address
+      FROM appointment a
+      JOIN doctor d ON a.doctorId = d.id
+      WHERE a.patientId = ?
+      ORDER BY a.appointmentDate DESC
+      `,
+      [patientId]
+    );
+
+    res.status(200).json({ success: true, data: appointments });
+  } catch (error) {
+    console.error("Error fetching appointments:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const getProfile = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const [patient] = await pool.execute(
+      `SELECT 
+        p.id, 
+        p.firstName, 
+        p.lastName, 
+        p.dateOfBirth, 
+        p.gender, 
+        p.phoneNumber, 
+        p.email, 
+        p.address, 
+        p.emergencyContactName, 
+        p.emergencyContactPhone, 
+        p.createdAt, 
+        p.updatedAt
+      FROM patient p
+      WHERE p.userId = ?`,
+      [userId]
+    );
+
+    if (patient.length === 0) {
+      return res.status(404).json({ success: false, message: "Patient not found" });
+    }
+
+    res.status(200).json({ success: true, data: patient[0] });
+  } catch (error) {
+    console.error("Error fetching patient profile:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 module.exports = {
   handleSignup,
-  handleLogin
+  handleLogin,
+  getAllDoctors,
+  getDoctorDetails,
+  handleApp,
+  addReview,
+  getAppointmentsByPatient,
+  getProfile
 };

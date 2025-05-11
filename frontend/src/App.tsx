@@ -12,6 +12,8 @@ import Appointment from "./pages/Appointment";
 import Careers from "./pages/careers";
 import Assistant from "./pages/Assistant"
 import SignUp from "./pages/Signup";
+import Review from "./pages/Review"
+import Reports from "./pages/Reports";
 function App() {
   return (
     <>
@@ -24,12 +26,14 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/about" element={<About />} />
+          <Route path="/medical-reports" element={<Reports />} />
           
           <Route path="/contact" element={<Contact />} />
           <Route path="/assistant" element={<Assistant />} />
           <Route path="/my-profile" element={<MyProfile />} />
           <Route path="/my-appointments" element={<MyAppointments />} />
           <Route path="/appointment/:docId" element={<Appointment />} />
+          <Route path="/review/:docId" element={<Review />} />
           <Route path="/careers" element={<Careers />} />  {/* Careers route */}
           
         </Routes>
