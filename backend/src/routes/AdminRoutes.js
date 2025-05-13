@@ -1,11 +1,8 @@
-// const express = require('express');
-// const router = express.Router();
-// const Controller = require('../controllers/AdminControllers');
+// routes/AdminRoutes.js
+const express = require('express');
+const router = express.Router();
+const { HandleLogin } = require('../controllers/AdminControllers'); // adjust the path
 
-// const multer = require('multer'); // ✅ ADD THIS LINE
-// const upload = multer({ dest: "uploads/" }); // OK after defining multe
+router.post('/login', HandleLogin);
 
-
-// router.post('/add-doctor', upload.single('profileImage'), Controller.AddDoctor);
-
-// module.exports = router;
+module.exports = router;
