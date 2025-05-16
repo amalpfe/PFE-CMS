@@ -1,18 +1,18 @@
+// src/components/DoctorSidebar.tsx
 import { Link } from "react-router-dom";
 
-// Import your icons
+// You can reuse or import doctor-specific icons here
 import homeIcon from "../assets/home_icon.svg";
 import appointmentIcon from "../assets/appointment_icon.svg";
-import addDoctorIcon from "../assets/add_icon.svg";
-import peopleIcon from "../assets/people_icon.svg";
+import profileIcon from "../assets/people_icon.svg"; // Reusing people icon for Profile
 
-const Sidebar = () => {
+const DoctorSidebar = () => {
   return (
     <div>
       {/* Sidebar links */}
       <div className="flex flex-col space-y-6">
         <Link
-          to="/admin/dashboard"
+          to="/doctor/dashboard"
           className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300"
         >
           <img src={homeIcon} alt="Dashboard" className="w-6 h-6 mr-4" />
@@ -20,7 +20,7 @@ const Sidebar = () => {
         </Link>
 
         <Link
-          to="/admin/appointments"
+          to="/doctor/appointments"
           className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300"
         >
           <img
@@ -32,23 +32,15 @@ const Sidebar = () => {
         </Link>
 
         <Link
-          to="/admin/doctors"
+          to="/doctor/profile"
           className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300"
         >
-          <img src={addDoctorIcon} alt="Add Doctor" className="w-6 h-6 mr-4" />
-          Add Doctor
-        </Link>
-
-        <Link
-          to="/admin/doctor-list"
-          className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300"
-        >
-          <img src={peopleIcon} alt="Doctor List" className="w-6 h-6 mr-4" />
-          Doctor List
+          <img src={profileIcon} alt="Profile" className="w-6 h-6 mr-4" />
+          Profile
         </Link>
       </div>
     </div>
   );
 };
 
-export default Sidebar;
+export default DoctorSidebar;

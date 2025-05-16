@@ -8,7 +8,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate(); // Use navigate for navigation
 
   const toggleRole = () => {
@@ -36,8 +36,12 @@ const Login = () => {
       setIsLoading(false); // Set loading state to false
       setMessage("Login successful!"); // Simulate success
 
-      // Redirect to Dashboard after successful login
-      navigate("/dashboard"); // Using navigate to redirect
+      // Redirect to respective dashboard based on role
+      if (role === "Admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/doctor/dashboard");
+      }
     }, 2000);
   };
 
@@ -54,7 +58,9 @@ const Login = () => {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="email" className="text-purple-600 text-sm font-medium">Email</label>
+          <label htmlFor="email" className="text-purple-600 text-sm font-medium">
+            Email
+          </label>
           <input
             id="email"
             type="email"
@@ -67,7 +73,9 @@ const Login = () => {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="password" className="text-purple-600 text-sm font-medium">Password</label>
+          <label htmlFor="password" className="text-purple-600 text-sm font-medium">
+            Password
+          </label>
           <input
             id="password"
             type="password"
@@ -82,12 +90,14 @@ const Login = () => {
         <button
           type="submit"
           className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
-          disabled={isLoading} // Disable button while loading
+          disabled={isLoading}
         >
           {isLoading ? "Logging in..." : "Login"}
         </button>
 
-        {message && <p className="mt-4 text-center text-sm text-red-600">{message}</p>}
+        {message && (
+          <p className="mt-4 text-center text-sm text-red-600">{message}</p>
+        )}
 
         <div className="mt-4 text-center">
           <p className="text-sm text-purple-600">

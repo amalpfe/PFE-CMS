@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useContext } from "react";
-import { AppContext } from "../context/AppContext";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DoctorType {
@@ -9,21 +8,29 @@ interface DoctorType {
   speciality: string;
   Image: string;
 }
-//update
 
 const Doctor = () => {
   const { speciality } = useParams<{ speciality: string }>();
-  const context = useContext(AppContext);
-
-  if (!context) {
-    throw new Error("AppContext is undefined. Make sure the component is wrapped with AppContextProvider.");
-  }
-
-  const { doctors } = context;
   const navigate = useNavigate();
+  const [doctors, setDoctors] = useState<DoctorType[]>([]);
   const [filterDoc, setFilterDoc] = useState<DoctorType[]>([]);
 
-  const applyFilter = () => {
+  // Fetch doctors from backend
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/patient/doctors");
+        const data = await res.json();
+        setDoctors(data);
+      } catch (err) {
+        console.error("Error fetching doctors:", err);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
+  // Filter doctors based on speciality
+  useEffect(() => {
     if (speciality) {
       const filtered = doctors.filter(
         (doc) => doc.speciality.toLowerCase() === speciality.toLowerCase()
@@ -32,10 +39,6 @@ const Doctor = () => {
     } else {
       setFilterDoc(doctors);
     }
-  };
-
-  useEffect(() => {
-    applyFilter();
   }, [doctors, speciality]);
 
   const specialities = [
@@ -44,7 +47,7 @@ const Doctor = () => {
     "Dermatologist",
     "Pediatrician",
     "Neurologist",
-    "Gastroenterologist" // ✅ Corrected spelling
+    "Gastroenterologist",
   ];
 
   return (

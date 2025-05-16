@@ -1,4 +1,3 @@
-// src/pages/login.tsx
 import { useState, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -6,19 +5,46 @@ const Login = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const onSubmitHandler = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Simple validation
     if (!email || !password) {
       setFormError("Please fill out all required fields.");
       return;
     }
 
     setFormError(null);
-    console.log({ email, password, type: "Login" });
-    // proceed with actual login logic...
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/patient/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Save token and user info
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // Redirect to dashboard or home
+      window.location.href = "/";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      setFormError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formVariants = {
@@ -81,7 +107,7 @@ const Login = () => {
             <input
               className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               type="password"
-              placeholder=""
+              placeholder="Your password"
               onChange={(e) => setPassword(e.target.value)}
               value={password}
               required
@@ -90,9 +116,10 @@ const Login = () => {
 
           <button
             type="submit"
-            className="mt-2 bg-purple-700 hover:bg-purple-600 text-white font-semibold py-2 rounded-full shadow-md transition duration-300"
+            disabled={loading}
+            className="mt-2 bg-purple-700 hover:bg-purple-600 text-white font-semibold py-2 rounded-full shadow-md transition duration-300 disabled:opacity-60"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
           <div className="text-center text-sm mt-3">
@@ -100,8 +127,8 @@ const Login = () => {
             <span
               className="text-purple-600 font-medium hover:underline cursor-pointer transition-colors duration-300"
               onClick={() => {
-                setFormError(null); // clear error when switching
-                window.location.href = '/signup'; // Redirect to Sign Up
+                setFormError(null);
+                window.location.href = "/signup";
               }}
             >
               Sign up here

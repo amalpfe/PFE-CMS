@@ -96,42 +96,32 @@ const getAllDoctors = async (req, res) => {
 };
 
 const getDoctorDetails = async (req, res) => {
-  const { id } = req.params;
+ const doctorId = req.params.id;
 
   try {
-    // Fetch doctor details
-    const [doctorResult] = await pool.query(
-      `SELECT id, CONCAT(firstName, ' ', lastName) AS name, 
-              specialty AS speciality, phoneNumber, email, address, 
-              degree, fees, experience, about, image AS Image
-       FROM doctor
-       WHERE id = ?`,
-      [id]
-    );
-
-    if (doctorResult.length === 0) {
+    // 1. Get doctor details
+    const [doctorRows] = await pool.execute("SELECT * FROM doctor WHERE id = ?", [
+      doctorId,
+    ]);
+    if (doctorRows.length === 0) {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
-    const doctor = doctorResult[0];
+    const doctor = doctorRows[0];
 
-    // Fetch doctor availability
-    const [availabilityResult] = await pool.query(
-      `SELECT dayOfWeek, startTime, endTime
-       FROM doctoravailability
-       WHERE doctorId = ?`,
-      [id]
+    // 2. Get doctor availability
+    const [availabilityRows] = await pool.execute(
+      "SELECT * FROM doctoravailability WHERE doctorId = ?",
+      [doctorId]
     );
 
-    doctor.availability = availabilityResult;
-
-    return res.status(200).json(doctor);
+    res.status(200).json({
+      ...doctor,
+      availability: availabilityRows,
+    });
   } catch (err) {
     console.error("Error fetching doctor details:", err);
-    return res.status(500).json({
-      message: "Failed to fetch doctor details",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 const handleApp = async (req, res) => {
@@ -256,6 +246,48 @@ const getProfile = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+const getMedicalRecordsByPatientId = async (req, res) => {
+  const { patientId } = req.params;
+
+  if (!patientId) {
+    return res.status(400).json({ error: "Patient ID is required." });
+  }
+
+  try {
+    const [records] = await pool.execute(
+      `SELECT id, recordDate AS visitDate, diagnosis, treatment, prescription 
+       FROM medicalrecord 
+       WHERE patientId = ? 
+       ORDER BY recordDate DESC`,
+      [patientId]
+    );
+
+    res.json(records);
+  } catch (error) {
+    console.error("Error fetching medical records:", error);
+    res.status(500).json({ error: "Failed to fetch medical records." });
+  }
+};
+const contactUs = async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  try {
+    await pool.execute(
+      "INSERT INTO contactus (name, email, message) VALUES (?, ?, ?)",
+      [name, email, message]
+    );
+    res.status(200).json({ message: "Message received successfully!" });
+  } catch (err) {
+    console.error("Error saving contact form:", err);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+};
+
 module.exports = {
   handleSignup,
   handleLogin,
@@ -264,5 +296,7 @@ module.exports = {
   handleApp,
   addReview,
   getAppointmentsByPatient,
-  getProfile
+  getProfile,
+  getMedicalRecordsByPatientId,
+  contactUs
 };

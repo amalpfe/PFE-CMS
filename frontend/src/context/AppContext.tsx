@@ -1,41 +1,61 @@
-import { createContext, ReactNode } from "react";
+import { createContext, ReactNode, useState } from "react";
 import { doctors } from "../assets/assets";
 
 // Define the doctor type
-export interface Doctor {
+export type Doctor = {
   _id: string;
   name: string;
-  Image: string;
-  speciality: string;
   degree: string;
+  speciality: string;
   experience: string;
   about: string;
   fees: number;
-  address: {
-    line1: string;
-    line2: string;
-  };
+  Image: string;
+  availability?: {
+    doctorId: number;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }[];
+};
+
+
+// Define the user type
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
 }
 
 // Define the context type
 interface AppContextType {
+  user: User | null;
+  setUser: (user: User | null) => void;
   doctors: Doctor[];
   currencySymbol: string;
 }
 
-// Create the context with an initial undefined value
+// Create the context
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Define the props for the provider
+// Props for provider
 interface AppContextProviderProps {
   children: ReactNode;
 }
 
 // Provider component
 const AppContextProvider: React.FC<AppContextProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>({
+    id: "patient123", // Example static user for development/testing
+    name: "John Doe",
+    email: "john@example.com"
+  });
+
   const currencySymbol = '$';
 
   const value: AppContextType = {
+    user,
+    setUser,
     doctors,
     currencySymbol,
   };

@@ -1,6 +1,7 @@
-import { useState, ChangeEvent } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
+import axios from "axios";
 import img from "../assets/profile_pic.png";
-import { motion } from "framer-motion"; // Import framer-motion for transitions
+import { motion } from "framer-motion";
 
 type Address = {
   line1: string;
@@ -18,32 +19,58 @@ type UserData = {
 };
 
 const MyProfile = () => {
-  const [userData, setUserData] = useState<UserData>({
-    name: "Ali Fakih",
-    image: img,
-    email: "alifakih@gmail.com",
-    phone: "+961 71 777 111",
-    address: {
-      line1: "city, country",
-      line2: "street, number",
-    },
-    gender: "Male",
-    dob: "2004-02-24",
-  });
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isEdit, setIsEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [isEdit, setIsEdit] = useState<boolean>(false);
+  // Dummy user ID for now — replace with dynamic user auth data if needed
+  const userId = "1";
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/patient/profile/${userId}`);
+        const data = response.data.data;
+
+        setUserData({
+          name: `${data.firstName} ${data.lastName}`,
+          image: img, // use default for now
+          email: data.email,
+          phone: data.phoneNumber,
+          address: {
+            line1: data.address || "N/A",
+            line2: "",
+          },
+          gender: data.gender === "M" ? "Male" : "Female",
+          dob: data.dateOfBirth?.split("T")[0] || "",
+        });
+
+        setLoading(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        console.error("Failed to fetch profile:", err);
+        setError("Failed to load profile.");
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setUserData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setUserData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
   };
 
-  // Animation variants for smooth transition effects
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: {
@@ -51,6 +78,10 @@ const MyProfile = () => {
       transition: { duration: 0.4, ease: "easeInOut" },
     },
   };
+
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
+  if (!userData) return null;
 
   return (
     <div className="max-w-4xl mx-auto my-10 p-6 bg-white rounded-2xl shadow-xl text-gray-800">
@@ -111,10 +142,14 @@ const MyProfile = () => {
                   type="text"
                   value={userData.address.line1}
                   onChange={(e) =>
-                    setUserData((prev) => ({
-                      ...prev,
-                      address: { ...prev.address, line1: e.target.value },
-                    }))
+                    setUserData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            address: { ...prev.address, line1: e.target.value },
+                          }
+                        : prev
+                    )
                   }
                   className="w-full mt-1 px-3 py-2 border rounded-md"
                 />
@@ -122,10 +157,14 @@ const MyProfile = () => {
                   type="text"
                   value={userData.address.line2}
                   onChange={(e) =>
-                    setUserData((prev) => ({
-                      ...prev,
-                      address: { ...prev.address, line2: e.target.value },
-                    }))
+                    setUserData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            address: { ...prev.address, line2: e.target.value },
+                          }
+                        : prev
+                    )
                   }
                   className="w-full mt-2 px-3 py-2 border rounded-md"
                 />

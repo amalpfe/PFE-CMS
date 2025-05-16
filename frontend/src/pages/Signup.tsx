@@ -1,32 +1,56 @@
-// src/pages/signup.tsx
 import { useState, FormEvent } from "react";
+import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SignUp = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>(""); // New state for confirm password
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const onSubmitHandler = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Simple validation
     if (!email || !password || !name || !confirmPassword) {
       setFormError("Please fill out all required fields.");
       return;
     }
 
-    // Check if passwords match
     if (password !== confirmPassword) {
       setFormError("Passwords do not match.");
       return;
     }
 
     setFormError(null);
-    console.log({ name, email, password, type: "Sign Up" });
-    // proceed with actual signup logic...
+    setSuccessMessage(null);
+
+    try {
+      const response = await axios.post("http://localhost:5000/patient/signup", {
+        name,
+        email,
+        password,
+        confirmPassword,
+      });
+
+      setSuccessMessage(response.data.message);
+      setEmail("");
+      setName("");
+      setPassword("");
+      setConfirmPassword("");
+
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error.response && error.response.data.message) {
+        setFormError(error.response.data.message);
+      } else {
+        setFormError("Something went wrong. Please try again.");
+      }
+    }
   };
 
   const formVariants = {
@@ -68,6 +92,18 @@ const SignUp = () => {
                 className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md text-sm"
               >
                 {formError}
+              </motion.div>
+            )}
+            {successMessage && (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-md text-sm"
+              >
+                {successMessage}
               </motion.div>
             )}
           </AnimatePresence>
@@ -132,8 +168,8 @@ const SignUp = () => {
             <span
               className="text-purple-600 font-medium hover:underline cursor-pointer transition-colors duration-300"
               onClick={() => {
-                setFormError(null); // clear error when switching
-                window.location.href = '/login'; // Redirect to Login
+                setFormError(null);
+                window.location.href = "/login";
               }}
             >
               Login here

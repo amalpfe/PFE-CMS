@@ -1,25 +1,24 @@
+// src/components/DoctorNavbar.tsx
 import { Link, useNavigate } from "react-router-dom";
 
-const Navbar = () => {
+const DoctorNavbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
     // Clear session data or tokens here
-    navigate("/"); // Navigate to the login page
+    navigate("/"); // Navigate back to login page
   };
 
   return (
     <div className="bg-purple-600 text-white p-4 flex items-center justify-between shadow-lg">
-      {/* Logo */}
+      {/* Doctor Panel Logo */}
       <Link
-        to="/dashboard"
+        to="/doctor/dashboard"
         className="text-2xl font-bold hover:text-gray-100 transition"
       >
-        Admin Panel
+        Doctor Panel
       </Link>
 
-      
-      
       {/* Logout Button */}
       <button
         onClick={handleLogout}
@@ -31,4 +30,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default DoctorNavbar;
