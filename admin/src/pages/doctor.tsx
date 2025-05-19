@@ -1,12 +1,170 @@
-// src/pages/Doctors.tsx
+import React, { useRef, useState } from "react";
 import Layout from "../components/Layout";
+import uploadIcon from "../assets/upload_area.svg"; // image path
 
 const Doctors = () => {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    specialty: "",
+    phoneNumber: "",
+    email: "",
+    address: "",
+    degree: "",
+    fees: "",
+    experience: "",
+    about: "",
+    image: "",
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, image: reader.result as string });
+      };
+      reader.readAsDataURL(file); // Convert image to base64
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Doctor Submitted:", formData);
+    alert("Doctor added successfully!");
+
+    setFormData({
+      firstName: "",
+      lastName: "",
+      specialty: "",
+      phoneNumber: "",
+      email: "",
+      address: "",
+      degree: "",
+      fees: "",
+      experience: "",
+      about: "",
+      image: "",
+    });
+  };
+
   return (
     <Layout>
-      <div>
-        <h1 className="text-3xl font-bold text-purple-600">Doctors</h1>
-        <p className="mt-4">Manage the list of doctors here.</p>
+      <div className="max-w-10xl mx-auto p-3 bg-white shadow-md rounded-xl max-h-screen overflow-y-auto">
+        <h1 className="text-3xl font-bold text-purple-600 mb-6">Add Doctor</h1>
+
+        {/* Image Upload */}
+        <div className="flex justify-center mb-6">
+          <div
+            onClick={handleImageClick}
+            className="w-32 h-32 border-2 border-dashed border-gray-300 flex items-center justify-center rounded-lg cursor-pointer overflow-hidden"
+          >
+            <img
+              src={formData.image || uploadIcon}
+              alt="Upload"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* First Name to Last Name */}
+          {[
+            { label: "First Name", name: "firstName" },
+            { label: "Last Name", name: "lastName" },
+            { label: "Phone Number", name: "phoneNumber" },
+            { label: "Email", name: "email", type: "email" },
+            { label: "Address", name: "address" },
+            { label: "Degree", name: "degree" },
+            { label: "Fees", name: "fees" },
+            { label: "Experience", name: "experience" },
+          ].map(({ label, name, type = "text" }) => (
+            <div key={name}>
+              <label htmlFor={name} className="block font-semibold text-sm text-gray-700">
+                {label}
+              </label>
+              <input
+                type={type}
+                id={name}
+                name={name}
+                value={formData[name as keyof typeof formData]}
+                onChange={handleChange}
+                className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+          ))}
+
+          {/* Specialty Dropdown */}
+          <div>
+            <label htmlFor="specialty" className="block font-semibold text-sm text-gray-700">
+              Specialty
+            </label>
+            <select
+              id="specialty"
+              name="specialty"
+              value={formData.specialty}
+              onChange={handleChange}
+              className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            >
+              <option value="">Select Specialty</option>
+              <option value="Cardiologist">Cardiologist</option>
+              <option value="Dermatologist">Dermatologist</option>
+              <option value="Pediatrician">Pediatrician</option>
+              <option value="Orthopedic">Orthopedic</option>
+              <option value="Neurologist">Neurologist</option>
+              <option value="Psychiatrist">Psychiatrist</option>
+              <option value="Gynecologist">Gynecologist</option>
+              <option value="Dentist">Dentist</option>
+              <option value="General Physician">General Physician</option>
+            </select>
+          </div>
+
+          {/* About Field */}
+          <div className="md:col-span-2">
+            <label htmlFor="about" className="block font-semibold text-sm text-gray-700">
+              About
+            </label>
+            <textarea
+              id="about"
+              name="about"
+              value={formData.about}
+              onChange={handleChange}
+              rows={2}
+              className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              className="mt-4 bg-purple-600 text-white py-2 px-6 rounded-lg hover:bg-purple-700 transition"
+            >
+              Add Doctor
+            </button>
+          </div>
+        </form>
       </div>
     </Layout>
   );

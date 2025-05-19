@@ -1,93 +1,91 @@
-// src/pages/Dashboard.tsx
-import { Link } from "react-router-dom";
-import Layout from "../components/Layout";
-import AppointmentsIcon from "../assets/appointments_icon.svg";
-import PatientsIcon from "../assets/patients_icon.svg";
-import DoctorIcon from "../assets/doctor_icon.svg";
-import ListIcon from "../assets/list_icon.svg"; // Import the new icon
 
-const appointmentsCount = 120;
-const patientsCount = 80;
-const doctorsList = [
-  { name: "Dr. John Doe", specialty: "Cardiology" },
-  { name: "Dr. Jane Smith", specialty: "Neurology" },
-  { name: "Dr. Michael Johnson", specialty: "Orthopedics" },
-];
+import Layout from "../components/Layout";
+
+// Import your SVG icons
+
+import DoctorIcon from "../assets/doctor_icon.svg";
+import PatientIcon from "../assets/patients_icon.svg";
+import AppointmentIcon from "../assets/appointments_icon.svg";
 
 const Dashboard = () => {
   return (
     <Layout>
-      <div className="space-y-8 p-6">
-        {/* Overview Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Appointments Count */}
-          <div className="bg-purple-600 text-white p-6 rounded-lg shadow-md flex items-center">
-            <img
-              src={AppointmentsIcon}
-              alt="Appointments Icon"
-              className="w-12 h-12 mr-4"
-            />
-            <div>
-              <h3 className="text-xl font-semibold">Appointments</h3>
-              <p className="text-3xl">{appointmentsCount}</p>
-            </div>
-          </div>
+      <div className="p-6">
+        <h1 className="text-3xl font-bold text-purple-600 mb-6">Admin Dashboard</h1>
 
-          {/* Patients Count */}
-          <div className="bg-purple-600 text-white p-6 rounded-lg shadow-md flex items-center">
-            <img
-              src={PatientsIcon}
-              alt="Patients Icon"
-              className="w-12 h-12 mr-4"
-            />
-            <div>
-              <h3 className="text-xl font-semibold">Patients</h3>
-              <p className="text-3xl">{patientsCount}</p>
-            </div>
-          </div>
-
-          {/* Doctors Count */}
-          <div className="bg-purple-600 text-white p-6 rounded-lg shadow-md flex items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Doctor Card */}
+          <div className="bg-white shadow-md rounded-2xl p-6 flex items-center gap-4">
             <img
               src={DoctorIcon}
-              alt="Doctors Icon"
-              className="w-12 h-12 mr-4"
+              alt="Doctor"
+              className="w-16 h-16 object-contain"
             />
             <div>
-              <h3 className="text-xl font-semibold">Doctors</h3>
-              <p className="text-3xl">{doctorsList.length}</p>
+              <h2 className="text-xl font-semibold text-gray-700">Total Doctors</h2>
+              <p className="text-3xl font-bold text-purple-600 mt-1">12</p>
+            </div>
+          </div>
+
+          {/* Patient Card */}
+          <div className="bg-white shadow-md rounded-2xl p-6 flex items-center gap-4">
+            <img
+              src={PatientIcon}
+              alt="Patient"
+              className="w-16 h-16 object-contain"
+            />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-700">Total Patients</h2>
+              <p className="text-3xl font-bold text-purple-600 mt-1">45</p>
+            </div>
+          </div>
+
+          {/* Appointment Card */}
+          <div className="bg-white shadow-md rounded-2xl p-6 flex items-center gap-4">
+            <img
+              src={AppointmentIcon}
+              alt="Appointment"
+              className="w-16 h-16 object-contain"
+            />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-700">Appointments</h2>
+              <p className="text-3xl font-bold text-purple-600 mt-1">87</p>
             </div>
           </div>
         </div>
 
-        {/* Doctors List */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold mb-4 flex items-center">
-            <img
-              src={ListIcon} // Use the new icon here
-              alt="List Icon"
-              className="w-8 h-8 mr-4"
-            />
-            List of Doctors
-          </h2>
-          <div className="space-y-4">
-            {doctorsList.map((doctor, index) => (
-              <div
-                key={index}
-                className="flex justify-between items-center bg-gray-100 p-4 rounded-lg shadow-sm"
-              >
-                <div>
-                  <h4 className="text-xl font-semibold">{doctor.name}</h4>
-                  <p className="text-gray-600">{doctor.specialty}</p>
-                </div>
-                <Link
-                  to={`/doctor/${index}`} // Replace with actual doctor page
-                  className="text-purple-600 hover:text-purple-800 transition duration-300"
-                >
-                  View Details
-                </Link>
-              </div>
-            ))}
+        {/* Recent Appointments Table */}
+        <div className="mt-10">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Recent Appointments</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white shadow-md rounded-xl overflow-hidden">
+              <thead className="bg-purple-600 text-white">
+                <tr>
+                  <th className="py-3 px-4 text-left">Patient</th>
+                  <th className="py-3 px-4 text-left">Doctor</th>
+                  <th className="py-3 px-4 text-left">Date</th>
+                  <th className="py-3 px-4 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="py-3 px-4">Jane Smith</td>
+                  <td className="py-3 px-4">Dr. Williams</td>
+                  <td className="py-3 px-4">2025-05-19</td>
+                  <td className="py-3 px-4">
+                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-sm">Completed</span>
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-4">John Doe</td>
+                  <td className="py-3 px-4">Dr. Doe</td>
+                  <td className="py-3 px-4">2025-05-18</td>
+                  <td className="py-3 px-4">
+                    <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-sm">Pending</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

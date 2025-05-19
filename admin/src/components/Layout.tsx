@@ -14,7 +14,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 p-6 bg-white rounded-lg shadow-md overflow-y-auto">
+        <div className="flex-1 p-6 bg-white rounded-lg shadow-md">
           {children}
         </div>
       </div>
