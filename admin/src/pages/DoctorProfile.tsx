@@ -18,11 +18,14 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(initialDoctor);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -108,9 +111,17 @@ const Profile = () => {
             </>
           ) : (
             <>
-              <p><span className="font-semibold">About :</span><br />{doctor.bio}</p>
-              <p><span className="font-semibold">Appointment Fee :</span> {doctor.fee}</p>
-              <p><span className="font-semibold">Address :</span> {doctor.address}</p>
+              <p>
+                <span className="font-semibold">About :</span>
+                <br />
+                {doctor.bio}
+              </p>
+              <p>
+                <span className="font-semibold">Appointment Fee :</span> {doctor.fee}
+              </p>
+              <p>
+                <span className="font-semibold">Address :</span> {doctor.address}
+              </p>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"

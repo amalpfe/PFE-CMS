@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import axios from "axios";
 import Layout from "../components/Layout";
 import uploadIcon from "../assets/upload_area.svg"; // image path
 
@@ -34,28 +35,39 @@ const Doctors = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Doctor Submitted:", formData);
-    alert("Doctor added successfully!");
 
-    setFormData({
-      firstName: "",
-      lastName: "",
-      specialty: "",
-      phoneNumber: "",
-      email: "",
-      address: "",
-      degree: "",
-      fees: "",
-      experience: "",
-      about: "",
-      image: "",
-    });
+    try {
+      // Replace '/api/doctors' with your actual backend URL or proxy route
+      const response = await axios.post("http://localhost:5000/admin/doctor", formData);
+
+      if (response.status === 201) {
+        alert("Doctor added successfully!");
+        setFormData({
+          firstName: "",
+          lastName: "",
+          specialty: "",
+          phoneNumber: "",
+          email: "",
+          address: "",
+          degree: "",
+          fees: "",
+          experience: "",
+          about: "",
+          image: "",
+        });
+      }
+    } catch (error) {
+      console.error("Error adding doctor:", error);
+      alert("Failed to add doctor. Please try again.");
+    }
   };
 
   return (
@@ -85,7 +97,10 @@ const Doctors = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           {/* First Name to Last Name */}
           {[
             { label: "First Name", name: "firstName" },
@@ -98,7 +113,10 @@ const Doctors = () => {
             { label: "Experience", name: "experience" },
           ].map(({ label, name, type = "text" }) => (
             <div key={name}>
-              <label htmlFor={name} className="block font-semibold text-sm text-gray-700">
+              <label
+                htmlFor={name}
+                className="block font-semibold text-sm text-gray-700"
+              >
                 {label}
               </label>
               <input
@@ -115,7 +133,10 @@ const Doctors = () => {
 
           {/* Specialty Dropdown */}
           <div>
-            <label htmlFor="specialty" className="block font-semibold text-sm text-gray-700">
+            <label
+              htmlFor="specialty"
+              className="block font-semibold text-sm text-gray-700"
+            >
               Specialty
             </label>
             <select
@@ -141,7 +162,10 @@ const Doctors = () => {
 
           {/* About Field */}
           <div className="md:col-span-2">
-            <label htmlFor="about" className="block font-semibold text-sm text-gray-700">
+            <label
+              htmlFor="about"
+              className="block font-semibold text-sm text-gray-700"
+            >
               About
             </label>
             <textarea

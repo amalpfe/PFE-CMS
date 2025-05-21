@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Layout from "../components/Layout";
 
 interface Doctor {
@@ -19,48 +20,39 @@ interface Doctor {
 }
 
 const DoctorList = () => {
-  const [doctors, setDoctors] = useState<Doctor[]>([
-    {
-      id: "1",
-      firstName: "Sarah",
-      lastName: "Williams",
-      specialty: "Dermatologist",
-      phoneNumber: "123-456-7890",
-      email: "sarah@example.com",
-      address: "123 Skin St.",
-      degree: "MD",
-      fees: "100",
-      experience: "5 years",
-      about: "Expert in skin treatments.",
-      image: "https://via.placeholder.com/100",
-      createdAt: "2025-05-19",
-      updatedAt: "2025-05-19",
-    },
-    {
-      id: "2",
-      firstName: "John",
-      lastName: "Doe",
-      specialty: "Cardiologist",
-      phoneNumber: "987-654-3210",
-      email: "john@example.com",
-      address: "456 Heart Ave.",
-      degree: "MBBS",
-      fees: "150",
-      experience: "10 years",
-      about: "Specializes in heart health.",
-      image: "https://via.placeholder.com/100",
-      createdAt: "2025-05-18",
-      updatedAt: "2025-05-18",
-    },
-  ]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [form, setForm] = useState<Partial<Doctor>>({});
 
-  const handleDelete = (id: string) => {
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:5000/admin/doctors");
+        setDoctors(response.data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to fetch doctors");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
+
+  const handleDelete = async (id: string) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this doctor?");
     if (confirmDelete) {
-      setDoctors((prev) => prev.filter((doc) => doc.id !== id));
+      try {
+        await axios.delete(`http://localhost:5000/admin/doctors/${id}`);
+        setDoctors((prev) => prev.filter((doc) => doc.id !== id));
+      } catch (err) {
+        alert("Failed to delete doctor");
+      }
     }
   };
 
@@ -74,18 +66,39 @@ const DoctorList = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (editingDoctor) {
-      setDoctors((prev) =>
-        prev.map((doc) =>
-          doc.id === editingDoctor.id
-            ? { ...doc, ...form, updatedAt: new Date().toISOString() }
-            : doc
-        )
-      );
-      setEditingDoctor(null);
+      try {
+        const response = await axios.put(
+          `http://localhost:5000/admin/doctors/${editingDoctor.id}`,
+          form
+        );
+
+        setDoctors((prev) =>
+          prev.map((doc) =>
+            doc.id === editingDoctor.id ? response.data : doc
+          )
+        );
+
+        setEditingDoctor(null);
+      } catch (err) {
+        alert("Failed to update doctor");
+      }
     }
   };
+
+  if (loading)
+    return (
+      <Layout>
+        <p className="p-6 text-center">Loading doctors...</p>
+      </Layout>
+    );
+  if (error)
+    return (
+      <Layout>
+        <p className="p-6 text-center text-red-600">{error}</p>
+      </Layout>
+    );
 
   return (
     <Layout>
@@ -110,7 +123,7 @@ const DoctorList = () => {
                 <tr key={doctor.id} className="border-b">
                   <td className="py-3 px-4">
                     <img
-                      src={doctor.image}
+                      src={doctor.image || "https://via.placeholder.com/100"}
                       alt={`${doctor.firstName} ${doctor.lastName}`}
                       className="w-12 h-12 object-cover rounded-full"
                     />
