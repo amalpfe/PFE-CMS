@@ -90,6 +90,50 @@ exports.getDoctorAppointments = async (req, res) => {
 
 
 
+exports. getAppointmentsByDoctor = async (req, res) => {
+  const doctorId = req.params.id;
+
+const query = `
+  SELECT 
+    a.id AS appointmentId,
+    CONCAT(p.firstName, ' ', p.lastName) AS patient,
+    TIMESTAMPDIFF(YEAR, p.dateOfBirth, CURDATE()) AS age,
+    a.appointmentDate,
+    d.fees,
+    a.appointmentStatus AS status,
+    a.notes
+  FROM appointment a    -- <--- change here from appointments to appointment
+  JOIN patient p ON a.patientId = p.id
+  JOIN doctor d ON a.doctorId = d.id
+  WHERE a.doctorId = ?
+  ORDER BY a.appointmentDate DESC
+`;
+
+
+  try {
+    const [rows] = await db.execute(query, [doctorId]);
+
+    const formatted = rows.map((row) => ({
+      id: row.appointmentId,
+      patient: row.patient,
+      age: row.age,
+      datetime: new Date(row.appointmentDate).toLocaleString(),
+      fees: `$${row.fees}`,
+      status: row.status,
+      notes: row.notes || "",
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+
+
 // GET /doctor/:id/profile
 exports.getProfile = async (req, res) => {
   const id = req.params.id;
@@ -116,6 +160,9 @@ exports.getProfile = async (req, res) => {
 
 
 // PUT /doctor/:id/profile
+const fs = require('fs');
+const path = require('path');
+
 exports.updateProfile = async (req, res) => {
   const id = req.params.id;
   const {
@@ -129,10 +176,43 @@ exports.updateProfile = async (req, res) => {
     fees,
     experience,
     about,
-    image,
+    image, // base64 string
   } = req.body;
 
   try {
+    let imagePath = null;
+
+    if (image && image.startsWith('data:image')) {
+      // Example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+
+      // Extract base64 data
+      const matches = image.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+      if (!matches) {
+        return res.status(400).json({ message: 'Invalid image format' });
+      }
+
+      const ext = matches[1]; // e.g. png, jpeg
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Create uploads folder if not exists
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir);
+      }
+
+      // Define filename (you can customize name)
+      const filename = `doctor-${id}.${ext}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      // Save file
+      fs.writeFileSync(filepath, buffer);
+
+      // Set path to store in DB (relative or URL)
+      imagePath = `/uploads/${filename}`;
+    }
+
+    // SQL to update doctor profile
     const sql = `
       UPDATE doctor SET
         firstName = ?,
@@ -145,7 +225,7 @@ exports.updateProfile = async (req, res) => {
         fees = ?,
         experience = ?,
         about = ?,
-        image = ?
+        image = COALESCE(?, image)  -- only update if new image is uploaded
       WHERE id = ?
     `;
 
@@ -160,7 +240,7 @@ exports.updateProfile = async (req, res) => {
       fees,
       experience,
       about,
-      image,
+      imagePath,
       id,
     ];
 
@@ -176,3 +256,4 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+

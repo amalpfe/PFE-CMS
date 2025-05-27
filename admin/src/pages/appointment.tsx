@@ -49,10 +49,9 @@ const AppointmentList = () => {
   }, []);
 
 const handleStatusChange = async (id: string, newStatus: Appointment["status"]) => {
-  // Find old status
   const oldStatus = appointments.find(appt => appt.id === id)?.status;
 
-  // Optimistic update
+  // Optimistically update UI
   setAppointments((prev) =>
     prev.map((appt) =>
       appt.id === id ? { ...appt, status: newStatus } : appt
@@ -60,14 +59,12 @@ const handleStatusChange = async (id: string, newStatus: Appointment["status"]) 
   );
 
   try {
-    await axios.put(`http://localhost:5000/admin/appointments/${id}`, {
-      status: newStatus,
-    });
+    await axios.put(`http://localhost:5000/admin/appointments/${id}`, { status: newStatus });
   } catch (error) {
     console.error("Failed to update status:", error);
     alert("Failed to update status. Please try again.");
 
-    // Revert to old status
+    // Revert UI if error
     if (oldStatus) {
       setAppointments((prev) =>
         prev.map((appt) =>

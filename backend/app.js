@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const PatientRoutes = require('./src/routes/PatientRoutes');
 const AdminRoutes = require('./src/routes/AdminRoutes');
@@ -8,6 +9,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/patient', PatientRoutes);
 app.use('/admin', AdminRoutes);
