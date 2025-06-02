@@ -1,24 +1,6 @@
-import { createContext, ReactNode, useState } from "react";
+import { createContext, ReactNode, useState, useEffect } from "react";
 import { doctors } from "../assets/assets";
-
-// Define the doctor type
-export type Doctor = {
-  _id: string;
-  name: string;
-  degree: string;
-  speciality: string;
-  experience: string;
-  about: string;
-  fees: number;
-  Image: string;
-  availability?: {
-    doctorId: number;
-    dayOfWeek: string;
-    startTime: string;
-    endTime: string;
-  }[];
-};
-
+import type { Doctor } from "../assets/assets";
 
 // Define the user type
 export interface User {
@@ -31,6 +13,8 @@ export interface User {
 interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  token: string | null;
+  setToken: (token: string | null) => void;
   doctors: Doctor[];
   currencySymbol: string;
 }
@@ -45,17 +29,39 @@ interface AppContextProviderProps {
 
 // Provider component
 const AppContextProvider: React.FC<AppContextProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>({
-    id: "patient123", // Example static user for development/testing
-    name: "John Doe",
-    email: "john@example.com"
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
   });
 
-  const currencySymbol = '$';
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem("token");
+  });
+
+  // Sync changes to localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("token", token);
+    } else {
+      localStorage.removeItem("token");
+    }
+  }, [token]);
+
+  const currencySymbol = "$";
 
   const value: AppContextType = {
     user,
     setUser,
+    token,
+    setToken,
     doctors,
     currencySymbol,
   };

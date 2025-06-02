@@ -23,9 +23,9 @@ const MyProfile = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  // Dummy user ID for now — replace with dynamic user auth data if needed
-  const userId = "1";
+  const userId = "1"; // Replace with actual auth-based ID later
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -35,20 +35,19 @@ const MyProfile = () => {
 
         setUserData({
           name: `${data.firstName} ${data.lastName}`,
-          image: img, // use default for now
+          image: img,
           email: data.email,
           phone: data.phoneNumber,
           address: {
             line1: data.address || "N/A",
-            line2: "",
+            line2: "", // Extend as needed
           },
           gender: data.gender === "M" ? "Male" : "Female",
           dob: data.dateOfBirth?.split("T")[0] || "",
         });
 
         setLoading(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to fetch profile:", err);
         setError("Failed to load profile.");
         setLoading(false);
@@ -58,9 +57,7 @@ const MyProfile = () => {
     fetchProfile();
   }, []);
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setUserData((prev) => {
       if (!prev) return prev;
@@ -69,6 +66,32 @@ const MyProfile = () => {
         [name]: value,
       };
     });
+  };
+
+  const handleSave = async () => {
+    if (!userData) return;
+
+    const [firstName, ...lastNameParts] = userData.name.split(" ");
+    const lastName = lastNameParts.join(" ") || "";
+
+    try {
+      await axios.put(`http://localhost:5000/patient/profile/${userId}`, {
+        firstName,
+        lastName,
+        email: userData.email,
+        phoneNumber: userData.phone,
+        address: userData.address.line1,
+        gender: userData.gender === "Male" ? "M" : "F",
+        dateOfBirth: userData.dob,
+      });
+
+      setIsEdit(false);
+      setSuccessMsg("Profile updated successfully!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      setError("Failed to update profile.");
+    }
   };
 
   const fadeIn = {
@@ -221,10 +244,12 @@ const MyProfile = () => {
         </motion.div>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      {/* Save / Edit Buttons */}
+      <div className="mt-6 flex justify-between items-center">
+        {successMsg && <p className="text-green-500">{successMsg}</p>}
         {isEdit ? (
           <motion.button
-            onClick={() => setIsEdit(false)}
+            onClick={handleSave}
             className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition duration-300"
             variants={fadeIn}
             initial="hidden"

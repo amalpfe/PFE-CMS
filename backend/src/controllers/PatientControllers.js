@@ -88,12 +88,19 @@ const getAllDoctors = async (req, res) => {
 
   try {
     const [results] = await pool.query(query);
-    res.status(200).json(results);
+
+    const updatedResults = results.map((doc) => ({
+      ...doc,
+      Image: doc.Image?.startsWith("data:") ? doc.Image : `data:image/png;base64,${doc.Image}`,
+    }));
+
+    res.status(200).json(updatedResults);
   } catch (err) {
     console.error("Error fetching doctors:", err);
     res.status(500).json({ message: "Failed to fetch doctors", error: err });
   }
 };
+
 
 const getDoctorDetails = async (req, res) => {
  const doctorId = req.params.id;
@@ -125,19 +132,32 @@ const getDoctorDetails = async (req, res) => {
   }
 };
 const handleApp = async (req, res) => {
-
-const { patientId, doctorId, appointmentDate } = req.body;
+  const { patientId, doctorId, appointmentDate } = req.body;
 
   if (!patientId || !doctorId || !appointmentDate) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
+    // Step 1: Check if an appointment already exists at that datetime for this doctor
+    const [existingAppointments] = await pool.execute(
+      `SELECT * FROM appointment 
+       WHERE doctorId = ? AND appointmentDate = ?`,
+      [doctorId, appointmentDate]
+    );
+
+    if (existingAppointments.length > 0) {
+      return res.status(400).json({
+        error: "This appointment slot is already booked. Please choose another time.",
+      });
+    }
+
+    // Step 2: Insert the new appointment
     const [result] = await pool.execute(
       `INSERT INTO appointment 
        (patientId, doctorId, appointmentDate, appointmentStatus, createdAt, updatedAt) 
        VALUES (?, ?, ?, 'Scheduled', NOW(), NOW())`,
-      [patientId, doctorId, appointmentDate || null]
+      [patientId, doctorId, appointmentDate]
     );
 
     res.status(201).json({
@@ -149,6 +169,7 @@ const { patientId, doctorId, appointmentDate } = req.body;
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 const addReview = async (req, res) => {
   const { appointmentId, patientId, rating, comment } = req.body;
@@ -287,6 +308,69 @@ const contactUs = async (req, res) => {
     res.status(500).json({ error: "Something went wrong." });
   }
 };
+const UpdateProfile = async (req, res) => {
+  const userId = req.params.userId;
+  const {
+    name,
+    email,
+    phone,
+    address,
+    gender,
+    dob
+  } = req.body;
+
+  // Split full name into firstName and lastName
+  const [firstName, ...lastNameParts] = name.trim().split(" ");
+  const lastName = lastNameParts.join(" ") || "";
+
+  try {
+    const query = `
+      UPDATE patient
+      SET firstName = ?, lastName = ?, email = ?, phoneNumber = ?, address = ?, gender = ?, dateOfBirth = ?, updatedAt = NOW()
+      WHERE userId = ?
+    `;
+
+    const values = [
+      firstName,
+      lastName,
+      email,
+      phone,
+      address?.line1 || null,
+      gender,
+      dob,
+      userId,
+    ];
+
+    await pool.query(query, values);
+
+    res.json({ success: true, message: "Profile updated successfully" });
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const submitFeedback = async (req, res) => {
+  try {
+    const { appointmentId, patientId, rating, comment } = req.body;
+
+    if (!appointmentId || !patientId || !rating || !comment) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const query = `
+      INSERT INTO feedback (appointmentId, patientId, rating, comment, submittedAt)
+      VALUES (?, ?, ?, ?, NOW())
+    `;
+
+    await pool.execute(query, [appointmentId, patientId, rating, comment]);
+
+    res.status(201).json({ message: "Feedback submitted successfully." });
+  } catch (error) {
+    console.error("Submit Feedback Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 module.exports = {
   handleSignup,
@@ -298,5 +382,7 @@ module.exports = {
   getAppointmentsByPatient,
   getProfile,
   getMedicalRecordsByPatientId,
-  contactUs
+  contactUs,
+  UpdateProfile,
+  submitFeedback
 };

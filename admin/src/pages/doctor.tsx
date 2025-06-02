@@ -18,6 +18,10 @@ const Doctors = () => {
     image: "",
   });
 
+  const [availability, setAvailability] = useState([
+    { dayOfWeek: "", startTime: "", endTime: "" },
+  ]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageClick = () => {
@@ -41,12 +45,39 @@ const Doctors = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleAvailabilityChange = (
+    index: number,
+    field: string,
+    value: string
+  ) => {
+    const updated = [...availability];
+    updated[index][field as keyof typeof updated[0]] = value;
+    setAvailability(updated);
+  };
+
+  const addAvailability = () => {
+    setAvailability([
+      ...availability,
+      { dayOfWeek: "", startTime: "", endTime: "" },
+    ]);
+  };
+
+  const removeAvailability = (index: number) => {
+    const updated = [...availability];
+    updated.splice(index, 1);
+    setAvailability(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const payload = {
+      ...formData,
+      availability,
+    };
+
     try {
-      // Replace '/api/doctors' with your actual backend URL or proxy route
-      const response = await axios.post("http://localhost:5000/admin/doctor", formData);
+      const response = await axios.post("http://localhost:5000/admin/doctor", payload);
 
       if (response.status === 201) {
         alert("Doctor added successfully!");
@@ -63,6 +94,7 @@ const Doctors = () => {
           about: "",
           image: "",
         });
+        setAvailability([{ dayOfWeek: "", startTime: "", endTime: "" }]);
       }
     } catch (error) {
       console.error("Error adding doctor:", error);
@@ -72,7 +104,7 @@ const Doctors = () => {
 
   return (
     <Layout>
-      <div className="max-w-10xl mx-auto p-3 bg-white shadow-md rounded-xl max-h-screen overflow-y-auto">
+      <div className="max-w-7xl mx-auto p-4 bg-white shadow-md rounded-xl max-h-screen overflow-y-auto">
         <h1 className="text-3xl font-bold text-purple-600 mb-6">Add Doctor</h1>
 
         {/* Image Upload */}
@@ -101,7 +133,6 @@ const Doctors = () => {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          {/* First Name to Last Name */}
           {[
             { label: "First Name", name: "firstName" },
             { label: "Last Name", name: "lastName" },
@@ -160,7 +191,7 @@ const Doctors = () => {
             </select>
           </div>
 
-          {/* About Field */}
+          {/* About */}
           <div className="md:col-span-2">
             <label
               htmlFor="about"
@@ -173,10 +204,76 @@ const Doctors = () => {
               name="about"
               value={formData.about}
               onChange={handleChange}
-              rows={2}
+              rows={3}
               className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
+          </div>
+
+          {/* Availability */}
+          <div className="md:col-span-2">
+            <label className="block font-semibold text-sm text-gray-700 mb-2">
+              Doctor Availability
+            </label>
+            {availability.map((slot, index) => (
+              <div key={index} className="grid grid-cols-4 gap-4 items-center mb-2">
+                <select
+                  value={slot.dayOfWeek}
+                  onChange={(e) =>
+                    handleAvailabilityChange(index, "dayOfWeek", e.target.value)
+                  }
+                  className="px-3 py-2 border rounded"
+                  required
+                >
+                  <option value="">Day</option>
+                  {[
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                    "Sunday",
+                  ].map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="time"
+                  value={slot.startTime}
+                  onChange={(e) =>
+                    handleAvailabilityChange(index, "startTime", e.target.value)
+                  }
+                  className="px-3 py-2 border rounded"
+                  required
+                />
+                <input
+                  type="time"
+                  value={slot.endTime}
+                  onChange={(e) =>
+                    handleAvailabilityChange(index, "endTime", e.target.value)
+                  }
+                  className="px-3 py-2 border rounded"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => removeAvailability(index)}
+                  className="text-red-600 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addAvailability}
+              className="text-purple-600 mt-2 hover:underline"
+            >
+              + Add Availability
+            </button>
           </div>
 
           {/* Submit Button */}

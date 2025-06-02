@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-gray-100">
       {/* Navbar */}
       <Navbar />
 
@@ -13,8 +13,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <Sidebar />
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 p-6 bg-white rounded-lg shadow-md">
+        {/* Main content with scroll */}
+        <div className="flex-1 p-6 overflow-y-auto">
           {children}
         </div>
       </div>

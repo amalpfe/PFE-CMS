@@ -15,6 +15,7 @@ app.use('/patient', PatientRoutes);
 app.use('/admin', AdminRoutes);
 app.use('/doctor',DoctorRoutes)
 
+
 const chatRoutes = require("./src/routes/ChatRoutes");
 app.use("/api", chatRoutes);
 

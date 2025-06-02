@@ -12,7 +12,7 @@ interface DoctorType {
 }
 
 interface RelatedDoctorsProps {
-  docId: string;
+  docId: number;
   speciality: string;
 }
 
@@ -21,6 +21,7 @@ const RelatedDoctors: React.FC<RelatedDoctorsProps> = ({ speciality, docId }) =>
   const context = useContext(AppContext);
   
   // Ensure the data fetched from context is of type Doctor[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const doctors: any[] = context?.doctors || [];  // Temporarily using `any[]` to allow transformation
 
   const [relDocs, setRelDocs] = useState<DoctorType[]>([]);

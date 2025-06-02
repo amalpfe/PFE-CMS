@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DoctorType {
-  _id: string;
+  id: string;
   name: string;
   speciality: string;
   Image: string;
 }
+
 
 const Doctor = () => {
   const { speciality } = useParams<{ speciality: string }>();
@@ -22,6 +23,8 @@ const Doctor = () => {
         const res = await fetch("http://localhost:5000/patient/doctors");
         const data = await res.json();
         setDoctors(data);
+
+
       } catch (err) {
         console.error("Error fetching doctors:", err);
       }
@@ -40,6 +43,7 @@ const Doctor = () => {
       setFilterDoc(doctors);
     }
   }, [doctors, speciality]);
+  
 
   const specialities = [
     "General Physician",
@@ -85,19 +89,16 @@ const Doctor = () => {
           <AnimatePresence>
             {filterDoc.map((item, index) => (
               <motion.div
-                key={item._id}
+                key={item.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                onClick={() => navigate(`/appointment/${item._id}`)}
+                 onClick={() => navigate(`/appointment/${item.id}`)}
                 className="border border-purple-100 rounded-xl overflow-hidden shadow-sm bg-white cursor-pointer hover:-translate-y-1 hover:shadow-md transition-transform duration-300"
               >
-                <img
-                  className="w-full h-48 object-cover bg-blue-50"
-                  src={item.Image}
-                  alt={item.name}
-                />
+ <img src={item.Image} alt={item.name} />
+
                 <div className="p-4">
                   <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>

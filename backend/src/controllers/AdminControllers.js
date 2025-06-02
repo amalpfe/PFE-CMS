@@ -87,6 +87,9 @@ if (!validStatuses.includes(status)) {
 
 
 exports.addDoctor = async (req, res) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+
   try {
     const {
       firstName,
@@ -100,15 +103,17 @@ exports.addDoctor = async (req, res) => {
       experience,
       about,
       image,
+      availability, // Array of { dayOfWeek, startTime, endTime }
     } = req.body;
 
-    const sql = `
+    // 1. Insert into doctor table
+    const doctorSql = `
       INSERT INTO doctor
       (firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await db.query(sql, [
+    const [doctorResult] = await connection.query(doctorSql, [
       firstName,
       lastName,
       specialty,
@@ -122,12 +127,43 @@ exports.addDoctor = async (req, res) => {
       image,
     ]);
 
-    res.status(201).json({ message: "Doctor added successfully" });
+    const doctorId = doctorResult.insertId;
+
+    // 2. Insert into doctoravailability
+    const availabilitySql = `
+      INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    const today = new Date().toISOString().split('T')[0]; // e.g., "2025-05-28"
+
+    for (const slot of availability) {
+      const { dayOfWeek, startTime, endTime } = slot;
+
+      // Ensure times are full DATETIME strings
+      const formattedStartTime = `${today} ${startTime}:00`; // e.g., "2025-05-28 09:00:00"
+      const formattedEndTime = `${today} ${endTime}:00`;     // e.g., "2025-05-28 13:00:00"
+
+      await connection.query(availabilitySql, [
+        doctorId,
+        dayOfWeek,
+        formattedStartTime,
+        formattedEndTime,
+      ]);
+    }
+
+    await connection.commit();
+    res.status(201).json({ message: "Doctor and availability added successfully" });
   } catch (error) {
-    console.error("Error adding doctor:", error);
-    res.status(500).json({ error: "Failed to add doctor" });
+    await connection.rollback();
+    console.error("Error adding doctor and availability:", error);
+    res.status(500).json({ error: "Failed to add doctor and availability" });
+  } finally {
+    connection.release();
   }
 };
+
+
 
 
 // controllers/doctorController.js

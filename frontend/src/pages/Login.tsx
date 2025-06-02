@@ -1,7 +1,10 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AppContext } from "../context/AppContext"; // 🔥 Make sure this path is correct
 
 const Login = () => {
+  const { setUser, setToken } = useContext(AppContext)!; // Use non-null assertion since AppContext is always provided
+
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -33,15 +36,16 @@ const Login = () => {
         throw new Error(data.message || "Login failed");
       }
 
-      // Save token and user info
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // Update global context and localStorage
+      setUser(data.user);
+      setToken(data.token);
 
-      // Redirect to dashboard or home
+      // Redirect to home or dashboard
       window.location.href = "/";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      setFormError(error.message);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong";
+      setFormError(message);
     } finally {
       setLoading(false);
     }

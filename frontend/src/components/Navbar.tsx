@@ -1,17 +1,27 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import logo from '../assets/logo2.png';
-import { useState } from 'react';
 import prof from '../assets/profilee_icon.png';
 import drop from '../assets/drop_icon.png';
 
 function Navbar() {
   const navigate = useNavigate();
-  const [token, setToken] = useState(true);
+  const location = useLocation();
+  const [token, setToken] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Check for token in localStorage when the component mounts
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    setToken(!!savedToken);
+  }, []);
+
   const handleLogout = () => {
-    setToken(false); // Clear auth token or session here if needed
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken(false);
     setShowLogoutModal(false);
+    navigate('/login');
   };
 
   return (
@@ -67,13 +77,17 @@ function Navbar() {
         <div className="flex items-center gap-4">
           {token ? (
             <div className="flex items-center gap-2 cursor-pointer group relative">
-              <img className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow" src={prof} alt="Profile" />
+              <img
+                className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow"
+                src={prof}
+                alt="Profile"
+              />
               <img className="w-4" src={drop} alt="Dropdown icon" />
               <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block">
                 <div className="min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4">
-                  <p onClick={() => navigate('my-profile')} className="hover:text-black cursor-pointer">My Profile</p>
-                  <p onClick={() => navigate('my-appointments')} className="hover:text-black cursor-pointer">My Appointment</p>
-                  <p onClick={() => navigate('medical-reports')} className="hover:text-black cursor-pointer">Medical Reports</p>
+                  <p onClick={() => navigate('/my-profile')} className="hover:text-black cursor-pointer">My Profile</p>
+                  <p onClick={() => navigate('/my-appointments')} className="hover:text-black cursor-pointer">My Appointment</p>
+                  <p onClick={() => navigate('/medical-reports')} className="hover:text-black cursor-pointer">Medical Reports</p>
                   <p onClick={() => setShowLogoutModal(true)} className="hover:text-red-500 cursor-pointer">Logout</p>
                 </div>
               </div>
@@ -91,8 +105,7 @@ function Navbar() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-    <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
-
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg text-center">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Are you sure you want to logout?</h2>
             <div className="flex justify-center gap-4">

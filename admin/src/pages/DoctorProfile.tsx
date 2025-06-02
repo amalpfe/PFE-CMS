@@ -3,10 +3,12 @@ import DoctorLayout from "../components/DoctorLayout";
 import axios from "axios";
 
 const Profile = () => {
-  const doctorId = 2; // Change dynamically as needed, e.g., route or auth context
+  const doctorId = 1; // Change dynamically as needed, e.g., route or auth context
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [doctor, setDoctor] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +33,7 @@ const Profile = () => {
   ) => {
     const { name, value, type } = e.target;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setFormData((prev: any) => ({
       ...prev,
       [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
@@ -104,6 +107,7 @@ const Profile = () => {
                     if (file) {
                       const reader = new FileReader();
                       reader.onloadend = () => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         setFormData((prev: any) => ({
                           ...prev,
                           image: reader.result,

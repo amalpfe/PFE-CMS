@@ -27,6 +27,7 @@ const AppointmentList = () => {
 
         const response = await axios.get("http://localhost:5000/admin/recent-appointments");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mappedAppointments = response.data.map((appt: any) => ({
           id: String(appt.id),
           patientName: appt.patientName,
