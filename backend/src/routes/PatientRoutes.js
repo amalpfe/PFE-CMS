@@ -15,7 +15,15 @@ router.get("/doctor/:id", Controller.getDoctorDetails);
 router.get("/appointments/:patientId", Controller.getAppointmentsByPatient);
 router.get("/profile/:userId", Controller.getProfile);
 router.get("/reports/:patientId", Controller.getMedicalRecordsByPatientId);
-
 router.put("/profile/:userId" , Controller.UpdateProfile);
+
+// GET all patients
+router.get("/patients", Controller.getAllPatients);
+
+// DELETE patient by ID
+router.delete("/patients/:id", Controller.deletePatient);
+
+// UPDATE patient by ID
+router.put("/patients/:id", Controller.updatePatient);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 // src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
-
+import axios from "axios";
 const Login = () => {
   const [role, setRole] = useState<"Admin" | "Doctor">("Admin");
   const [email, setEmail] = useState("");
@@ -15,35 +15,53 @@ const Login = () => {
     setRole((prev) => (prev === "Admin" ? "Doctor" : "Admin"));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
 
-    // Basic email validation
-    if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setMessage("Please enter a valid email.");
-      return;
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    setMessage("Please enter a valid email.");
+    return;
+  }
+
+  if (!password) {
+    setMessage("Please enter a password.");
+    return;
+  }
+
+  setIsLoading(true);
+  setMessage("");
+
+  try {
+    const response = await axios.post("http://localhost:5000/auth/login", {
+      email,
+      password,
+    });
+
+    const { token, role, message } = response.data;
+
+    localStorage.setItem("token", token);
+
+    setMessage(message || "Login successful!");
+
+    // Navigate based on role
+    if (role === "Admin") {
+      navigate("/admin/dashboard");
+    } else if (role === "Doctor") {
+      navigate("/doctor/dashboard");
+    } else {
+      setMessage("Access denied: Only Admin or Doctor roles are supported here.");
     }
+  } catch (error: any) {
+    setMessage(
+      error.response?.data?.message || "Login failed. Please try again."
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    if (!password) {
-      setMessage("Please enter a password.");
-      return;
-    }
-
-    setIsLoading(true); // Set loading state to true
-
-    // Simulate a login request (no actual API)
-    setTimeout(() => {
-      setIsLoading(false); // Set loading state to false
-      setMessage("Login successful!"); // Simulate success
-
-      // Redirect to respective dashboard based on role
-      if (role === "Admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/doctor/dashboard");
-      }
-    }, 2000);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

@@ -372,6 +372,94 @@ const submitFeedback = async (req, res) => {
   }
 };
 
+
+
+// 1. GET all patients
+const getAllPatients = async (req, res) => {
+  try {
+    const [patients] = await pool.execute("SELECT * FROM patient");
+    res.status(200).json(patients);
+  } catch (error) {
+    console.error("Error fetching patients:", error.message);
+    res.status(500).json({ message: "Server error while fetching patients" });
+  }
+};
+
+// 2. DELETE a patient by ID
+const deletePatient = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [result] = await pool.execute("DELETE FROM patient WHERE id = ?", [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    res.status(200).json({ message: "Patient deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting patient:", error.message);
+    res.status(500).json({ message: "Server error while deleting patient" });
+  }
+};
+
+// 3. UPDATE a patient by ID
+const updatePatient = async (req, res) => {
+  const { id } = req.params;
+  const {
+    firstName,
+    lastName,
+    dateOfBirth,
+    gender,
+    phoneNumber,
+    email,
+    address,
+    emergencyContactName,
+    emergencyContactPhone,
+  } = req.body;
+
+  try {
+    const [result] = await pool.execute(
+      `UPDATE patient SET 
+        firstName = ?, 
+        lastName = ?, 
+        dateOfBirth = ?, 
+        gender = ?, 
+        phoneNumber = ?, 
+        email = ?, 
+        address = ?, 
+        emergencyContactName = ?, 
+        emergencyContactPhone = ?,
+        updatedAt = NOW()
+      WHERE id = ?`,
+      [
+        firstName,
+        lastName,
+        dateOfBirth,
+        gender,
+        phoneNumber,
+        email,
+        address,
+        emergencyContactName,
+        emergencyContactPhone,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    const [updatedPatientRows] = await pool.execute("SELECT * FROM patient WHERE id = ?", [id]);
+
+    res.status(200).json(updatedPatientRows[0]);
+  } catch (error) {
+    console.error("Error updating patient:", error.message);
+    res.status(500).json({ message: "Server error while updating patient" });
+  }
+};
+
+
 module.exports = {
   handleSignup,
   handleLogin,
@@ -384,5 +472,8 @@ module.exports = {
   getMedicalRecordsByPatientId,
   contactUs,
   UpdateProfile,
-  submitFeedback
+  submitFeedback,
+  getAllPatients,
+  deletePatient,
+  updatePatient,
 };

@@ -1,6 +1,9 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+require('dotenv').config();
+
+const authRoutes=require('./src/routes/AuthRoutes')
 const PatientRoutes = require('./src/routes/PatientRoutes');
 const AdminRoutes = require('./src/routes/AdminRoutes');
 const DoctorRoutes=require('./src/routes/DoctorRoutes')
@@ -9,15 +12,17 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.use('/auth', authRoutes);
 app.use('/patient', PatientRoutes);
 app.use('/admin', AdminRoutes);
 app.use('/doctor',DoctorRoutes)
 
+console.log('JWT_SECRET is:', process.env.JWT_SECRET);
 
-const chatRoutes = require("./src/routes/ChatRoutes");
-app.use("/api", chatRoutes);
+// const chatRoutes = require("./src/routes/ChatRoutes");
+// app.use("/api", chatRoutes);
 
 
 // ✅ Add this route for the root path

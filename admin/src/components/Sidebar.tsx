@@ -46,6 +46,13 @@ const Sidebar = () => {
           <img src={peopleIcon} alt="Doctor List" className="w-6 h-6 mr-4" />
           Doctor List
         </Link>
+        <Link
+      to="/admin/patient-list"
+      className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+      <img src={peopleIcon} alt="Patient List" className="w-6 h-6 mr-4" />
+      Patient List
+      </Link>
+
       </div>
     </div>
   );

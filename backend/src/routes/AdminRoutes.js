@@ -30,6 +30,11 @@ router.put('/doctors/:id', AdminController.updateDoctor);
 router.delete('/doctors/:id', AdminController.deleteDoctor);
 
 
+// Route to get today's appointments
+// router.get('/today-appointments', AdminController.getTodayAppointments);
+
+// Route to get today's available doctors
+// router.get('/today-doctors', AdminController.getTodayDoctors); // ✅ Don't call the function
 
 
 module.exports = router;

@@ -8,6 +8,7 @@ import DoctorList from "./pages/doctorlist";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import DoctorAppointments from "./pages/DoctorAppointments";
 import DoctorProfile from "./pages/DoctorProfile";
+import PatientList from "./pages/patientlist";
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
         <Route path="/admin/appointments" element={<Appointments />} />
         <Route path="/admin/doctors" element={<Doctors />} />
         <Route path="/admin/doctor-list" element={<DoctorList />} />
-
+        <Route path="/admin/patient-list" element={<PatientList />} />
         {/* <Route path="/doctor/dashboard" element={<DoctorLayout children={undefined} />} /> */}
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/doctor/appointments" element={<DoctorAppointments />} />

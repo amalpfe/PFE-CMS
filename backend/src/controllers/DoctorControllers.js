@@ -131,32 +131,29 @@ const query = `
 };
 
 
-
-
-
 // GET /doctor/:id/profile
-exports.getProfile = async (req, res) => {
-  const id = req.params.id;
+// exports.getProfile = async (req, res) => {
+//   const id = req.params.id;
 
-  try {
-    const sql = `
-      SELECT id, userId, firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image, createdAt, updatedAt
-      FROM doctor
-      WHERE id = ?
-    `;
+//   try {
+//     const sql = `
+//       SELECT id, userId, firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image, createdAt, updatedAt
+//       FROM doctor
+//       WHERE id = ?
+//     `;
 
-    const [rows] = await db.query(sql, [id]);
+//     const [rows] = await db.query(sql, [id]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
+//     if (rows.length === 0) {
+//       return res.status(404).json({ message: "Doctor not found" });
+//     }
 
-    res.json(rows[0]);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//     res.json(rows[0]);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 
 // PUT /doctor/:id/profile
@@ -257,3 +254,74 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+/////////////new/////////////
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+// const db = require('../config/db'); // adjust the path as needed
+
+exports.loginDoctor = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // 1. Check user
+    const [users] = await db.query('SELECT * FROM user WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const user = users[0];
+
+    // 2. Check role
+    if (user.role !== 'Doctor') {
+      return res.status(403).json({ error: 'User is not a doctor' });
+    }
+
+    // 3. Compare password
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // 4. Get doctor profile
+    const [doctors] = await db.query('SELECT * FROM doctor WHERE userId = ?', [user.id]);
+    if (doctors.length === 0) {
+      return res.status(404).json({ error: 'Doctor profile not found' });
+    }
+
+    const doctor = doctors[0];
+
+    // 5. Generate token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        doctorId: doctor.id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET || 'yourDefaultSecret',
+      { expiresIn: '1d' }
+    );
+
+    res.json({ message: 'Login successful', token });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  const doctorId = req.user.doctorId;
+
+  try {
+    const [rows] = await db.query('SELECT * FROM doctor WHERE id = ?', [doctorId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

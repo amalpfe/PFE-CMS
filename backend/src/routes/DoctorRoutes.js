@@ -1,8 +1,16 @@
 const express = require('express');
+const { verifyToken } = require('../middlewares/auth');
+
 const DoctorController = require('../controllers/DoctorControllers');
 
 const router = express.Router();
+//new
 
+router.post('/login', DoctorController.loginDoctor);
+
+router.get('/profile', verifyToken, DoctorController.getProfile);
+
+//////////////////
 // Doctor Dashboard
 router.get("/:id/dashboard", DoctorController.getDoctorDashboard);
 
