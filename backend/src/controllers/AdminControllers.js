@@ -1,5 +1,5 @@
 const db = require('../../config');
-
+const bcrypt = require('bcrypt');
 
 exports.getCounts = async (req, res) => {
   try {

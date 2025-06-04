@@ -34,21 +34,32 @@ const handleSubmit = async (e: React.FormEvent) => {
   setMessage("");
 
   try {
-    const response = await axios.post("http://localhost:5000/auth/login", {
+    // Construct URL depending on role
+    const url =
+      role === "Admin"
+        ? "http://localhost:5000/auth/login/admin"
+        : "http://localhost:5000/auth/login/doctor";
+
+    const response = await axios.post(url, {
       email,
       password,
     });
 
-    const { token, role, message } = response.data;
-
-    localStorage.setItem("token", token);
-
+    const {  message ,token} = response.data;
+    let userRole: string | undefined;
+    if (response.data.role) {
+      userRole = response.data.role; // ideal case
+    } else if (response.data.doctor) {
+      userRole = "Doctor";
+    } else if (response.data.admin) {
+      userRole = "Admin";
+    }
+    localStorage.setItem('token', token);
+    
     setMessage(message || "Login successful!");
-
-    // Navigate based on role
-    if (role === "Admin") {
+    if (userRole === "Admin") {
       navigate("/admin/dashboard");
-    } else if (role === "Doctor") {
+    } else if (userRole === "Doctor") {
       navigate("/doctor/dashboard");
     } else {
       setMessage("Access denied: Only Admin or Doctor roles are supported here.");
@@ -61,6 +72,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     setIsLoading(false);
   }
 };
+
+
 
 
   return (

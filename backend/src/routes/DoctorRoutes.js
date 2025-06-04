@@ -6,7 +6,7 @@ const DoctorController = require('../controllers/DoctorControllers');
 const router = express.Router();
 //new
 
-router.post('/login', DoctorController.loginDoctor);
+router.post("/createdoctor", DoctorController.createDoctor);
 
 router.get('/profile', verifyToken, DoctorController.getProfile);
 
