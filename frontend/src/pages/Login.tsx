@@ -1,6 +1,7 @@
 import { useState, FormEvent, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppContext } from "../context/AppContext"; // 🔥 Make sure this path is correct
+import axios from "axios";
 
 const Login = () => {
   const { setUser, setToken } = useContext(AppContext)!; // Use non-null assertion since AppContext is always provided
@@ -10,46 +11,40 @@ const Login = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const onSubmitHandler = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+ 
 
-    if (!email || !password) {
-      setFormError("Please fill out all required fields.");
-      return;
+const onSubmitHandler = async (e: FormEvent) => {
+  e.preventDefault();
+  setFormError(null);
+  setLoading(true);
+
+  try {
+    const response = await axios.post("http://localhost:5000/patient/login", {
+      email,
+      password,
+    });
+
+    const { user, token } = response.data;
+
+    // Save user and token in global state or localStorage
+    setUser(user);
+    setToken(token);
+    
+
+    // Redirect to home or dashboard after login
+    window.location.href = "/";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    if (error.response?.data?.message) {
+      setFormError(error.response.data.message);
+    } else {
+      setFormError("Something went wrong. Please try again.");
     }
+  } finally {
+    setLoading(false);
+  }
+};
 
-    setFormError(null);
-    setLoading(true);
-
-    try {
-      const res = await fetch("http://localhost:5000/patient/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      // Update global context and localStorage
-      setUser(data.user);
-      setToken(data.token);
-
-      // Redirect to home or dashboard
-      window.location.href = "/";
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Something went wrong";
-      setFormError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formVariants = {
     initial: { opacity: 0, y: 30 },

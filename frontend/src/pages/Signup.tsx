@@ -10,48 +10,39 @@ const SignUp = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const onSubmitHandler = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+ const onSubmitHandler = async (e: FormEvent) => {
+  e.preventDefault();
+  setFormError(null);
+  setSuccessMessage(null);
 
-    if (!email || !password || !name || !confirmPassword) {
-      setFormError("Please fill out all required fields.");
-      return;
+  if (password !== confirmPassword) {
+    setFormError("Passwords do not match");
+    return;
+  }
+
+  try {
+    const response = await axios.post("http://localhost:5000/patient/signup", {
+      username: name,
+      email,
+      password,
+      confirmPassword,
+    });
+
+    setSuccessMessage(response.data.message);
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setName("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      setFormError(error.response.data.message);
+    } else {
+      setFormError("An unexpected error occurred");
     }
+  }
+};
 
-    if (password !== confirmPassword) {
-      setFormError("Passwords do not match.");
-      return;
-    }
-
-    setFormError(null);
-    setSuccessMessage(null);
-
-    try {
-      const response = await axios.post("http://localhost:5000/patient/signup", {
-        name,
-        email,
-        password,
-        confirmPassword,
-      });
-
-      setSuccessMessage(response.data.message);
-      setEmail("");
-      setName("");
-      setPassword("");
-      setConfirmPassword("");
-
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 2000);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (error.response && error.response.data.message) {
-        setFormError(error.response.data.message);
-      } else {
-        setFormError("Something went wrong. Please try again.");
-      }
-    }
-  };
 
   const formVariants = {
     initial: { opacity: 0, y: 30 },
@@ -109,7 +100,7 @@ const SignUp = () => {
           </AnimatePresence>
 
           <div>
-            <label className="text-sm font-medium">Full Name</label>
+            <label className="text-sm font-medium">Username</label>
             <input
               className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               type="text"

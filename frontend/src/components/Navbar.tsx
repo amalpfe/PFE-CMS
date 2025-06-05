@@ -8,12 +8,23 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [token, setToken] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Check for token in localStorage when the component mounts
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+
     setToken(!!savedToken);
+
+    if (user) {
+      try {
+        const parsedUser = JSON.parse(user);
+        setUserId(parsedUser.id); // or parsedUser._id based on your backend
+      } catch (err) {
+        console.error("Error parsing user from localStorage:", err);
+      }
+    }
   }, []);
 
   const handleLogout = () => {
@@ -85,7 +96,15 @@ function Navbar() {
               <img className="w-4" src={drop} alt="Dropdown icon" />
               <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block">
                 <div className="min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4">
-                  <p onClick={() => navigate('/my-profile')} className="hover:text-black cursor-pointer">My Profile</p>
+                  <p
+                    onClick={() => {
+                      if (!userId) return navigate("/login");
+                      navigate(`/my-profile/${userId}`);
+                    }}
+                    className="hover:text-black cursor-pointer"
+                  >
+                    My Profile
+                  </p>
                   <p onClick={() => navigate('/my-appointments')} className="hover:text-black cursor-pointer">My Appointment</p>
                   <p onClick={() => navigate('/medical-reports')} className="hover:text-black cursor-pointer">Medical Reports</p>
                   <p onClick={() => setShowLogoutModal(true)} className="hover:text-red-500 cursor-pointer">Logout</p>

@@ -64,6 +64,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     } else {
       setMessage("Access denied: Only Admin or Doctor roles are supported here.");
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     setMessage(
       error.response?.data?.message || "Login failed. Please try again."

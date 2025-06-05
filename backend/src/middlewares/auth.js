@@ -1,18 +1,32 @@
 const jwt = require('jsonwebtoken');
 
-exports.verifyToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1]; // "Bearer <token>"
+const protect = (req, res, next) => {
+  let token;
 
-  if (!token) return res.status(403).json({ error: 'No token provided' });
+  // استخرج التوكن من هيدر Authorization: Bearer <token>
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
 
-  jwt.verify(token, process.env.JWT_SECRET || 'defaultSecretKey', (err, decoded) => {
-    if (err) return res.status(401).json({ error: 'Unauthorized' });
+      // فك التوكن
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    console.log("Decoded JWT:", decoded); // 👈 add this for debugging
+      // ضع بيانات المستخدم في req.user (مثلاً id)
+      req.user = { id: decoded.id };
 
-    req.user = decoded;
-    next();
-  });
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  }
+
+  if (!token) {
+    res.status(401).json({ message: 'Not authorized, no token' });
+  }
 };
 
-
+module.exports = protect;

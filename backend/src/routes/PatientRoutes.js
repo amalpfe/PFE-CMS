@@ -2,7 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const Controller = require('../controllers/PatientControllers');
+const protect = require('../middlewares/auth'); // أو اسم الملف عندك
 
+router.get('/profile/:id', Controller.getProfile);
 router.post('/signup', Controller.handleSignup);
 router.post('/contact', Controller.contactUs);
 router.post('/appointment', Controller.handleApp);
@@ -13,9 +15,10 @@ router.post("/feedback", Controller.submitFeedback);
 router.get('/doctors', Controller.getAllDoctors);
 router.get("/doctor/:id", Controller.getDoctorDetails);
 router.get("/appointments/:patientId", Controller.getAppointmentsByPatient);
-router.get("/profile/:userId", Controller.getProfile);
+
 router.get("/reports/:patientId", Controller.getMedicalRecordsByPatientId);
-router.put("/profile/:userId" , Controller.UpdateProfile);
+router.put("/profile/:id" , Controller.UpdateProfile);
+router.put("/cancel-appointment/:appointmentId", Controller.cancelAppointment);
 
 // GET all patients
 router.get("/patients", Controller.getAllPatients);

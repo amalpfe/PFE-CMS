@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post("/createdoctor", DoctorController.createDoctor);
 
-router.get('/profile', verifyToken, DoctorController.getProfile);
+// router.get('/profile', verifyToken, DoctorController.getProfile);
 
 //////////////////
 // Doctor Dashboard

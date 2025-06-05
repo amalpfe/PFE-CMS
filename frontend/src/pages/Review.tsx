@@ -1,68 +1,62 @@
-import { useContext, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { AppContext } from "../context/AppContext";
 import { FaStar } from "react-icons/fa";
 
-function Review() {
-  const { docId, appointmentId } = useParams<{ docId: string; appointmentId: string }>();
+interface RouteParams {
+  appointmentId: number;
+  patientId: number;
+  doctorName: string;
+}
 
-  const context = useContext(AppContext);
+function Review() {
+const { appointmentId, patientId, doctorName } = useParams() as unknown as RouteParams;
+
+
+  const navigate = useNavigate();
+
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number | null>(null);
   const [comment, setComment] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string>("");
 
-  if (!context) return <p>Context not available.</p>;
-
-  // Ensure both docId and doctors are valid
-const doctor = context?.doctors.find((doc) => doc._id === docId);
-
-
-  // Demo hardcoded patientId and appointmentId
-const patientId = context?.user?.id; // ← now dynamic
-
-
   const handleSubmit = async () => {
-    if (!rating || !comment) {
-      setError("Please provide both a rating and comment.");
+    if (!rating || !comment.trim()) {
+      setError("Please provide both rating and comment.");
       return;
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/patient/feedback", {
+      const response = await axios.post("http://localhost:5000/patient/add", {
         appointmentId,
         patientId,
-        doctorId: docId, // Send docId as doctorId
         rating,
         comment,
       });
 
-      console.log("Feedback response:", response.data);
-      setSubmitted(true);
-      setRating(0);
-      setComment("");
-      setError("");
-      setTimeout(() => setSubmitted(false), 5000);
+      if (response.status === 201) {
+        setSubmitted(true);
+        setError("");
+        // Optional: redirect after submission
+        setTimeout(() => {
+          navigate("/"); // or wherever you want after submission
+        }, 3000);
+      }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error submitting feedback:", err);
-      setError(err.response?.data?.message || "Submission failed. Try again.");
+      setError(
+        err.response?.data?.message || "Failed to submit review. Try again."
+      );
     }
   };
-
-  if (!doctor) {
-    return <p className="text-red-500 font-medium mt-10 text-center">Doctor not found.</p>;
-  }
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 bg-white shadow rounded-lg">
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-        Leave a Review for Dr. {doctor.name}
+        Leave a Review for Dr. {decodeURIComponent(doctorName || "")}
       </h2>
 
-      {/* Star Rating */}
       <div className="mb-4">
         <label className="block text-gray-600 mb-1">Rating:</label>
         <div className="flex items-center gap-1">
@@ -81,7 +75,6 @@ const patientId = context?.user?.id; // ← now dynamic
         </div>
       </div>
 
-      {/* Comment Field */}
       <div className="mb-4">
         <label className="block text-gray-600 mb-1">Comment:</label>
         <textarea
@@ -93,18 +86,23 @@ const patientId = context?.user?.id; // ← now dynamic
         />
       </div>
 
-      {/* Submit Button */}
       <button
         onClick={handleSubmit}
-        className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 transition"
+        disabled={submitted}
+        className={`${
+          submitted
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-purple-600 hover:bg-purple-700"
+        } text-white px-6 py-2 rounded transition`}
       >
         Submit Review
       </button>
 
       {submitted && (
-        <p className="text-green-600 mt-4 font-medium">Review submitted successfully!</p>
+        <p className="text-green-600 mt-4 font-medium">
+          Review submitted successfully!
+        </p>
       )}
-
       {error && <p className="text-red-600 mt-4 font-medium">{error}</p>}
     </div>
   );

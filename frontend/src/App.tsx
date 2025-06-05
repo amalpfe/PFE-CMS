@@ -30,10 +30,11 @@ function App() {
           
           <Route path="/contact" element={<Contact />} />
           <Route path="/assistant" element={<Assistant />} />
-          <Route path="/my-profile" element={<MyProfile />} />
+          <Route path="/my-profile/:id" element={<MyProfile />} />
           <Route path="/my-appointments" element={<MyAppointments />} />
           <Route path="/appointment/:docId" element={<Appointment />} />
-          <Route path="/review/:docId" element={<Review />} />
+          <Route path="/review/:appointmentId/:patientId/:doctorName" element={<Review />} />
+
           <Route path="/careers" element={<Careers />} />  {/* Careers route */}
           
         </Routes>

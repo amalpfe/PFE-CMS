@@ -41,7 +41,7 @@ const Home = () => {
         whileInView="visible"
         viewport={{ once: false, amount: 0.2 }}
       >
-        <TopDoctors />
+        {/* <TopDoctors /> */}
       </motion.section>
 
       <motion.section

@@ -1,7 +1,7 @@
 import { useEffect, useState, ChangeEvent } from "react";
 import axios from "axios";
-import img from "../assets/profile_pic.png";
 import { motion } from "framer-motion";
+import { useParams } from "react-router-dom"; // To use dynamic params
 
 type Address = {
   line1: string;
@@ -19,43 +19,35 @@ type UserData = {
 };
 
 const MyProfile = () => {
+  const { id } = useParams<{ id: string }>(); // Get userId from route params
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const userId = "1"; // Replace with actual auth-based ID later
-
   useEffect(() => {
     const fetchProfile = async () => {
-      try {
-        const response = await axios.get(`http://localhost:5000/patient/profile/${userId}`);
-        const data = response.data.data;
-
-        setUserData({
-          name: `${data.firstName} ${data.lastName}`,
-          image: img,
-          email: data.email,
-          phone: data.phoneNumber,
-          address: {
-            line1: data.address || "N/A",
-            line2: "", // Extend as needed
-          },
-          gender: data.gender === "M" ? "Male" : "Female",
-          dob: data.dateOfBirth?.split("T")[0] || "",
-        });
-
+      if (!id) {
+        setError("User ID is missing.");
         setLoading(false);
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
+        return;
+      }
+
+      try {
+        const res = await axios.get(`http://localhost:5000/patient/profile/${id}`);
+        setUserData(res.data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        console.error(err);
         setError("Failed to load profile.");
+      } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [id]); // Fetch profile based on the dynamic id from the URL
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -69,28 +61,21 @@ const MyProfile = () => {
   };
 
   const handleSave = async () => {
-    if (!userData) return;
-
-    const [firstName, ...lastNameParts] = userData.name.split(" ");
-    const lastName = lastNameParts.join(" ") || "";
+    if (!userData || !id) return;
+    setLoading(true);
+    setError("");
+    setSuccessMsg("");
 
     try {
-      await axios.put(`http://localhost:5000/patient/profile/${userId}`, {
-        firstName,
-        lastName,
-        email: userData.email,
-        phoneNumber: userData.phone,
-        address: userData.address.line1,
-        gender: userData.gender === "Male" ? "M" : "F",
-        dateOfBirth: userData.dob,
-      });
-
+      const res = await axios.put(`http://localhost:5000/patient/profile/${id}`, userData);
+      setSuccessMsg(res.data.message);
       setIsEdit(false);
-      setSuccessMsg("Profile updated successfully!");
-      setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err) {
-      console.error("Failed to update profile:", err);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error(err);
       setError("Failed to update profile.");
+    } finally {
+      setLoading(false);
     }
   };
 

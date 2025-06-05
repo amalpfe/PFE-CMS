@@ -40,11 +40,13 @@ const MyAppointments = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorAppointment | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const patientId = context?.user?.id; // Assuming user is stored in context
+  const patientId = context?.user?.id;
 
   useEffect(() => {
     if (!patientId) return;
+
     const fetchAppointments = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/patient/appointments/${patientId}`);
@@ -80,11 +82,47 @@ const MyAppointments = () => {
     closeModal();
   };
 
+  const handleCancelAppointment = async () => {
+    if (!selectedDoctor) return;
+
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/patient/cancel-appointment/${selectedDoctor.appointmentId}`
+      );
+
+      if (response.data.success) {
+        setAppointments((prev) =>
+          prev.map((app) =>
+            app.appointmentId === selectedDoctor.appointmentId
+              ? { ...app, appointmentStatus: "Cancelled" }
+              : app
+          )
+        );
+        setShowCancelModal(false);
+        setSelectedDoctor(null);
+        
+        // Show success message for 3 seconds
+        setSuccessMessage("Appointment cancelled successfully.");
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Failed to cancel appointment:", error);
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10 bg-gray-50">
+    <div className="max-w-7xl mx-auto px-4 py-10 bg-gray-50 relative">
       <p className="text-2xl font-bold text-purple-800 pb-4 border-b mb-8">
         My Appointments
       </p>
+
+      {successMessage && (
+        <div className="fixed top-5 right-5 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-md z-50">
+          {successMessage}
+        </div>
+      )}
 
       {appointments.length === 0 ? (
         <p className="text-center text-gray-500">No appointments found.</p>
@@ -118,7 +156,15 @@ const MyAppointments = () => {
                 {new Date(appointment.appointmentDate).toLocaleString()}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium">Status:</span> {appointment.appointmentStatus}
+                <span className="font-medium">Status:</span>{" "}
+                <span
+                  style={{
+                    color: appointment.appointmentStatus === "Cancelled" ? "red" : "inherit",
+                    fontWeight: appointment.appointmentStatus === "Cancelled" ? "bold" : "normal",
+                  }}
+                >
+                  {appointment.appointmentStatus}
+                </span>
               </p>
             </div>
 
@@ -126,6 +172,7 @@ const MyAppointments = () => {
               <button
                 onClick={() => openModal(appointment)}
                 className="text-sm text-purple-700 border border-purple-500 py-2 rounded hover:bg-purple-700 hover:text-white transition-all duration-300"
+                disabled={appointment.appointmentStatus === "Cancelled"}
               >
                 Pay Online
               </button>
@@ -135,6 +182,7 @@ const MyAppointments = () => {
                   setSelectedDoctor(appointment);
                   setShowCancelModal(true);
                 }}
+                disabled={appointment.appointmentStatus === "Cancelled"}
               >
                 Cancel Appointment
               </button>
@@ -160,12 +208,21 @@ const MyAppointments = () => {
               className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md"
             >
               <h3 className="text-xl font-semibold mb-4 text-purple-700">Payment Details</h3>
-              <p><span className="font-medium text-gray-700">Doctor:</span> Dr. {selectedDoctor.doctorName}</p>
-              <p><span className="font-medium text-gray-700">Amount:</span> $50.00</p>
-              <p><span className="font-medium text-gray-700">Payment Status:</span> Pending</p>
+              <p>
+                <span className="font-medium text-gray-700">Doctor:</span> Dr.{" "}
+                {selectedDoctor.doctorName}
+              </p>
+              <p>
+                <span className="font-medium text-gray-700">Amount:</span> $50.00
+              </p>
+              <p>
+                <span className="font-medium text-gray-700">Payment Status:</span> Pending
+              </p>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Payment Method:</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Payment Method:
+                </label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
@@ -205,11 +262,7 @@ const MyAppointments = () => {
               <div className="flex justify-center gap-4 mt-6">
                 <button
                   className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-                  onClick={() => {
-                    console.log("Cancelled appointment for:", selectedDoctor?.doctorName);
-                    setShowCancelModal(false);
-                    setSelectedDoctor(null);
-                  }}
+                  onClick={handleCancelAppointment}
                 >
                   Yes, Cancel
                 </button>

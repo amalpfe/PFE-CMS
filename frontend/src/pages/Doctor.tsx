@@ -9,22 +9,19 @@ interface DoctorType {
   Image: string;
 }
 
-
 const Doctor = () => {
   const { speciality } = useParams<{ speciality: string }>();
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState<DoctorType[]>([]);
   const [filterDoc, setFilterDoc] = useState<DoctorType[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch doctors from backend
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         const res = await fetch("http://localhost:5000/patient/doctors");
         const data = await res.json();
         setDoctors(data);
-
-
       } catch (err) {
         console.error("Error fetching doctors:", err);
       }
@@ -32,18 +29,23 @@ const Doctor = () => {
     fetchDoctors();
   }, []);
 
-  // Filter doctors based on speciality
   useEffect(() => {
+    let filtered = doctors;
+
     if (speciality) {
-      const filtered = doctors.filter(
+      filtered = filtered.filter(
         (doc) => doc.speciality.toLowerCase() === speciality.toLowerCase()
       );
-      setFilterDoc(filtered);
-    } else {
-      setFilterDoc(doctors);
     }
-  }, [doctors, speciality]);
-  
+
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((doc) =>
+        doc.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilterDoc(filtered);
+  }, [doctors, speciality, searchTerm]);
 
   const specialities = [
     "General Physician",
@@ -61,7 +63,7 @@ const Doctor = () => {
       </h1>
 
       {/* Speciality Filter */}
-      <div className="flex flex-wrap gap-3 justify-center mb-10">
+      <div className="flex flex-wrap gap-3 justify-center mb-6">
         {specialities.map((item, index) => (
           <button
             key={index}
@@ -83,6 +85,17 @@ const Doctor = () => {
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="flex justify-center mb-10">
+        <input
+          type="text"
+          placeholder="Search doctor by name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+      </div>
+
       {/* Doctors Grid or Empty Message */}
       {filterDoc.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
@@ -94,11 +107,10 @@ const Doctor = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                 onClick={() => navigate(`/appointment/${item.id}`)}
+                onClick={() => navigate(`/appointment/${item.id}`)}
                 className="border border-purple-100 rounded-xl overflow-hidden shadow-sm bg-white cursor-pointer hover:-translate-y-1 hover:shadow-md transition-transform duration-300"
               >
- <img src={item.Image} alt={item.name} />
-
+                <img src={item.Image} alt={item.name} className="w-full h-40 object-cover" />
                 <div className="p-4">
                   <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -118,7 +130,7 @@ const Doctor = () => {
           transition={{ duration: 0.4 }}
           className="text-center text-gray-500 mt-10 text-lg"
         >
-          No doctors found for this speciality.
+          No doctors found for this search.
         </motion.p>
       )}
     </div>

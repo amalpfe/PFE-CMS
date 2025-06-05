@@ -2,84 +2,83 @@
 const axios = require('axios'); 
 const { validationResult } = require('express-validator');// controllers/signupController.js
 const bcrypt = require('bcryptjs');
+
+const saltRounds = 10;
+
 const pool = require('../../config'); // Assuming your MySQL pool is configured in config.js
 const jwt = require('jsonwebtoken');
 // Handle user signup
 const handleSignup = async (req, res) => {
-  const { name, email, password, confirmPassword } = req.body;
-
-  // Simple validation
-  if (!name || !email || !password || !confirmPassword) {
-    return res.status(400).json({ message: "Please fill out all required fields." });
-  }
+  const { username, email, password, confirmPassword } = req.body;
 
   if (password !== confirmPassword) {
-    return res.status(400).json({ message: "Passwords do not match." });
+    return res.status(400).json({ message: "Passwords do not match" });
   }
 
   try {
-    // Check if email already exists
-    const [rows] = await pool.execute('SELECT * FROM user WHERE email = ?', [email]);
-    if (rows.length > 0) {
-      return res.status(400).json({ message: "Email is already registered." });
+    const [existing] = await pool.query("SELECT id FROM patient WHERE username = ?", [username]);
+    if (existing.length > 0) {
+      return res.status(409).json({ message: "Username already exists" });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert user into database
-    await pool.execute(
-      'INSERT INTO user (username, passwordHash, email, role, status) VALUES (?, ?, ?, ?, ?)',
-      [name, hashedPassword, email, 'Patient', 'Active']
+    await pool.query(
+      "INSERT INTO patient (username, email, passwordHash) VALUES (?, ?, ?)",
+      [username, email, hashedPassword]
     );
 
-    return res.status(201).json({ message: 'User created successfully!' });
-  } catch (error) {
-    console.error('Error during signup:', error);
-    return res.status(500).json({ message: 'Server error. Please try again later.' });
+    res.status(201).json({ message: "Account created successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
-
 //Handle user login
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ message: "Please provide both email and password" });
+  }
+
   try {
-    // تحقق من وجود المستخدم
-    const [user] = await pool.query("SELECT * FROM user WHERE email = ?", [email]);
-
-    if (!user.length) {
-      return res.status(404).json({ message: "User not found" });
+    const [users] = await pool.query("SELECT * FROM patient WHERE email = ?", [email]);
+    
+    if (users.length === 0) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const foundUser = user[0];
+    const user = users[0];
+    const match = await bcrypt.compare(password, user.passwordHash);
 
-    // تحقق من كلمة السر
-    const isPasswordCorrect = await bcrypt.compare(password, foundUser.passwordHash);
-    if (!isPasswordCorrect) {
-      return res.status(401).json({ message: "Incorrect password" });
+    if (!match) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // إنشاء توكن
+    // Optional: Generate JWT token
     const token = jwt.sign(
-      { id: foundUser.id, role: foundUser.role },
-      "SECRET_KEY", // بدّك تغيّرها ببيئة الإنتاج
-      { expiresIn: "1d" }
+      { id: user.id, email: user.email, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "2h" }
     );
 
-    res.status(200).json({
+    // Send user info + token (you can customize fields sent to frontend)
+    res.json({
+      message: "Login successful",
       token,
       user: {
-        id: foundUser.id,
-        email: foundUser.email,
-        username: foundUser.username,
-        role: foundUser.role,
+        id: user.id,
+        email: user.email,
+        username: user.username,
       },
     });
-  } catch (error) {
-    console.error("Login error:", error);
+    
+  } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
   }
+  
 };
 
 //Handle doctors page
@@ -174,22 +173,26 @@ const handleApp = async (req, res) => {
 const addReview = async (req, res) => {
   const { appointmentId, patientId, rating, comment } = req.body;
 
+  console.log("Review request body:", req.body);
+
   if (!appointmentId || !patientId || !rating || !comment) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
-    // تحقق أولاً أن الـ appointment موجود ومرتبط بنفس المريض
     const [appointments] = await pool.execute(
       "SELECT * FROM appointment WHERE id = ? AND patientId = ?",
       [appointmentId, patientId]
     );
 
+    console.log("Appointment query result:", appointments);
+
     if (appointments.length === 0) {
-      return res.status(404).json({ message: "Appointment not found or mismatch" });
+      return res.status(404).json({ 
+        message: `Appointment with id ${appointmentId} for patient ${patientId} not found.` 
+      });
     }
 
-    // إدخال التقييم
     await pool.execute(
       `INSERT INTO feedback (appointmentId, patientId, rating, comment, submittedAt)
        VALUES (?, ?, ?, ?, NOW())`,
@@ -202,6 +205,7 @@ const addReview = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const getAppointmentsByPatient = async (req, res) => {
   const { patientId } = req.params;
@@ -233,40 +237,38 @@ const getAppointmentsByPatient = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 const getProfile = async (req, res) => {
-  const { userId } = req.params;
+  const id = req.params.id;
 
   try {
-    const [patient] = await pool.execute(
-      `SELECT 
-        p.id, 
-        p.firstName, 
-        p.lastName, 
-        p.dateOfBirth, 
-        p.gender, 
-        p.phoneNumber, 
-        p.email, 
-        p.address, 
-        p.emergencyContactName, 
-        p.emergencyContactPhone, 
-        p.createdAt, 
-        p.updatedAt
-      FROM patient p
-      WHERE p.userId = ?`,
-      [userId]
+    const [result] = await pool.query(
+      'SELECT id, firstName, lastName, email, phoneNumber, gender, dateOfBirth, address FROM patient WHERE id = ?',
+      [id]
     );
 
-    if (patient.length === 0) {
-      return res.status(404).json({ success: false, message: "Patient not found" });
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Patient not found" });
     }
 
-    res.status(200).json({ success: true, data: patient[0] });
+    const patient = result[0];
+    const name = `${patient.firstName} ${patient.lastName}`;
+    const [line1, line2 = ''] = (patient.address || "").split(',');
+
+    res.json({
+      name,
+      email: patient.email,
+      phone: patient.phoneNumber,
+      gender: patient.gender,
+      dob: patient.dateOfBirth,
+      image: patient.image,
+      address: { line1: line1.trim(), line2: line2.trim() },
+    });
   } catch (error) {
-    console.error("Error fetching patient profile:", error.message);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Error fetching patient profile:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const getMedicalRecordsByPatientId = async (req, res) => {
   const { patientId } = req.params;
@@ -309,46 +311,28 @@ const contactUs = async (req, res) => {
   }
 };
 const UpdateProfile = async (req, res) => {
-  const userId = req.params.userId;
-  const {
-    name,
-    email,
-    phone,
-    address,
-    gender,
-    dob
-  } = req.body;
+  const { id } = req.params;
+  const { name, email, phone, gender, dob, address } = req.body;
 
-  // Split full name into firstName and lastName
-  const [firstName, ...lastNameParts] = name.trim().split(" ");
-  const lastName = lastNameParts.join(" ") || "";
+  const [firstName, ...rest] = name.split(' ');
+  const lastName = rest.join(' ') || '';
+  const fullAddress = `${address.line1}, ${address.line2}`;
 
   try {
-    const query = `
-      UPDATE patient
-      SET firstName = ?, lastName = ?, email = ?, phoneNumber = ?, address = ?, gender = ?, dateOfBirth = ?, updatedAt = NOW()
-      WHERE userId = ?
-    `;
+    const [result] = await pool.query(
+      `UPDATE patient 
+       SET firstName = ?, lastName = ?, email = ?, phoneNumber = ?, gender = ?, dateOfBirth = ?, address = ? 
+       WHERE id = ?`,
+      [firstName, lastName, email, phone, gender, dob, fullAddress, id]
+    );
 
-    const values = [
-      firstName,
-      lastName,
-      email,
-      phone,
-      address?.line1 || null,
-      gender,
-      dob,
-      userId,
-    ];
-
-    await pool.query(query, values);
-
-    res.json({ success: true, message: "Profile updated successfully" });
-  } catch (err) {
-    console.error("Error updating profile:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const submitFeedback = async (req, res) => {
   try {
@@ -458,7 +442,31 @@ const updatePatient = async (req, res) => {
     res.status(500).json({ message: "Server error while updating patient" });
   }
 };
+const cancelAppointment = async (req, res) => {
+  const { appointmentId } = req.params;
 
+  if (!appointmentId) {
+    return res.status(400).json({ success: false, message: "Appointment ID is required." });
+  }
+
+  try {
+    const [result] = await pool.execute(
+      `UPDATE appointment 
+       SET appointmentStatus = 'Cancelled', updatedAt = NOW() 
+       WHERE id = ?`,
+      [appointmentId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Appointment not found." });
+    }
+
+    res.status(200).json({ success: true, message: "Appointment cancelled successfully." });
+  } catch (error) {
+    console.error("Error cancelling appointment:", error);
+    res.status(500).json({ success: false, message: "Failed to cancel appointment." });
+  }
+};
 
 module.exports = {
   handleSignup,
@@ -476,4 +484,5 @@ module.exports = {
   getAllPatients,
   deletePatient,
   updatePatient,
+  cancelAppointment,
 };
