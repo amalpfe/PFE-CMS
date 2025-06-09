@@ -1,5 +1,7 @@
 const db = require('../../config');
 const bcrypt = require('bcrypt');
+const JWT_SECRET = process.env.JWT_SECRET;
+const jwt = require('jsonwebtoken');
 
 exports.getCounts = async (req, res) => {
   try {
@@ -259,3 +261,61 @@ exports.addDoctor = async (req, res) => {
     connection.release();
   }
 };
+exports.loginAdmin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const [adminRows] = await db.query(
+      "SELECT * FROM admin WHERE username = ?",
+      [email]
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(401).json({ message: "Invalid admin credentials." });
+    }
+
+    const admin = adminRows[0];
+
+    const match = await bcrypt.compare(password, admin.passwordHash);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid password." });
+    }
+
+    const token = jwt.sign({ id: admin.id, role: "Admin" }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.json({
+      message: "Admin login successful!",
+      token,
+      role: "Admin",
+      admin: {
+        id: admin.id,
+        username: admin.username,
+      },
+    });
+  } catch (err) {
+    console.error("Admin login error:", err);
+    return res.status(500).json({ message: "Server error during admin login." });
+  }
+};
+
+async function createAdmin(username, plainPassword) {
+  try {
+    // Hash the plain password with 10 salt rounds
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    // Insert admin into the database with hashed password
+    const [result] = await db.query(
+      "INSERT INTO admin (username, passwordHash) VALUES (?, ?)",
+      [username, hashedPassword]
+    );
+
+    console.log("Admin created with ID:", result.insertId);
+  } catch (err) {
+    console.error("Error creating admin:", err);
+  }
+}
+
+// Usage
+// createAdmin("admin@example.comr", "admin123");

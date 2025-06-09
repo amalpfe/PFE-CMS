@@ -1,7 +1,7 @@
-// src/pages/Login.tsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+
 const Login = () => {
   const [role, setRole] = useState<"Admin" | "Doctor">("Admin");
   const [email, setEmail] = useState("");
@@ -9,73 +9,51 @@ const Login = () => {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate(); // Use navigate for navigation
+  const navigate = useNavigate();
 
   const toggleRole = () => {
     setRole((prev) => (prev === "Admin" ? "Doctor" : "Admin"));
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage("");
 
+    try {
+      const endpoint =
+        role === "Admin"
+          ? "http://localhost:5000/admin/login"
+          : "http://localhost:5000/doctor/login";
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+      const response = await axios.post(endpoint, {
+        email,
+        password,
+      });
 
-  if (!email || !/\S+@\S+\.\S+/.test(email)) {
-    setMessage("Please enter a valid email.");
-    return;
-  }
+      const { token, role: returnedRole, admin, doctor } = response.data;
 
-  if (!password) {
-    setMessage("Please enter a password.");
-    return;
-  }
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", returnedRole);
 
-  setIsLoading(true);
-  setMessage("");
-
-  try {
-    // Construct URL depending on role
-    const url =
-      role === "Admin"
-        ? "http://localhost:5000/auth/login/admin"
-        : "http://localhost:5000/auth/login/doctor";
-
-    const response = await axios.post(url, {
-      email,
-      password,
-    });
-
-    const {  message ,token} = response.data;
-    let userRole: string | undefined;
-    if (response.data.role) {
-      userRole = response.data.role; // ideal case
-    } else if (response.data.doctor) {
-      userRole = "Doctor";
-    } else if (response.data.admin) {
-      userRole = "Admin";
+      if (returnedRole === "Admin") {
+        localStorage.setItem("user", JSON.stringify(admin));
+        navigate("/admin/dashboard");
+      } else {
+        localStorage.setItem("user", JSON.stringify(doctor));
+        navigate("/doctor/dashboard");
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error.response && error.response.data?.message) {
+        setMessage(error.response.data.message);
+      } else {
+        setMessage("Login failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
-    localStorage.setItem('token', token);
-    
-    setMessage(message || "Login successful!");
-    if (userRole === "Admin") {
-      navigate("/admin/dashboard");
-    } else if (userRole === "Doctor") {
-      navigate("/doctor/dashboard");
-    } else {
-      setMessage("Access denied: Only Admin or Doctor roles are supported here.");
-    }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    setMessage(
-      error.response?.data?.message || "Login failed. Please try again."
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

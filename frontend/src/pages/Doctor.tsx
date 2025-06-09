@@ -6,8 +6,9 @@ interface DoctorType {
   id: string;
   name: string;
   speciality: string;
-  Image: string;
+  image: string;
 }
+
 
 const Doctor = () => {
   const { speciality } = useParams<{ speciality: string }>();
@@ -110,7 +111,8 @@ const Doctor = () => {
                 onClick={() => navigate(`/appointment/${item.id}`)}
                 className="border border-purple-100 rounded-xl overflow-hidden shadow-sm bg-white cursor-pointer hover:-translate-y-1 hover:shadow-md transition-transform duration-300"
               >
-                <img src={item.Image} alt={item.name} className="w-full h-40 object-cover" />
+               <img src={item.image} alt={item.name} className="w-full h-40 object-cover" />
+
                 <div className="p-4">
                   <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
