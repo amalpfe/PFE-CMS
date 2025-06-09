@@ -1,145 +1,179 @@
-// src/pages/Login.tsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+
 const Login = () => {
   const [role, setRole] = useState<"Admin" | "Doctor">("Admin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const navigate = useNavigate(); // Use navigate for navigation
+  const navigate = useNavigate();
 
   const toggleRole = () => {
     setRole((prev) => (prev === "Admin" ? "Doctor" : "Admin"));
+    setMessage("");
   };
 
+  const initialValues = {
+    emailOrUsername: "",
+    password: "",
+    rememberMe: false,
+  };
 
+  const validationSchema = Yup.object().shape({
+    emailOrUsername: Yup.string()
+      .required(`${role === "Admin" ? "Username" : "Email"} is required`)
+      .when("role", {
+        is: "Doctor",
+        then: (schema) => schema.email("Invalid email format"),
+      }),
+    password: Yup.string().required("Password is required"),
+  });
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (
+    values: typeof initialValues,
+    { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
+  ) => {
+    setMessage("");
+    setIsLoading(true);
 
-  if (!email || !/\S+@\S+\.\S+/.test(email)) {
-    setMessage("Please enter a valid email.");
-    return;
-  }
-
-  if (!password) {
-    setMessage("Please enter a password.");
-    return;
-  }
-
-  setIsLoading(true);
-  setMessage("");
-
-  try {
-    // Construct URL depending on role
     const url =
       role === "Admin"
         ? "http://localhost:5000/auth/login/admin"
         : "http://localhost:5000/auth/login/doctor";
 
-    const response = await axios.post(url, {
-      email,
-      password,
-    });
+    const payload =
+      role === "Admin"
+        ? { username: values.emailOrUsername, password: values.password }
+        : { email: values.emailOrUsername, password: values.password };
 
-    const {  message ,token} = response.data;
-    let userRole: string | undefined;
-    if (response.data.role) {
-      userRole = response.data.role; // ideal case
-    } else if (response.data.doctor) {
-      userRole = "Doctor";
-    } else if (response.data.admin) {
-      userRole = "Admin";
+    try {
+      const response = await axios.post(url, payload);
+      const { token, role: responseRole } = response.data;
+
+      if (values.rememberMe) {
+        localStorage.setItem("token", token);
+      } else {
+        sessionStorage.setItem("token", token);
+      }
+
+      navigate(
+        responseRole === "Admin" ? "/admin/dashboard" : "/doctor/dashboard"
+      );
+    } catch (error: any) {
+      setMessage(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Login failed. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+      setSubmitting(false);
     }
-    localStorage.setItem('token', token);
-    
-    setMessage(message || "Login successful!");
-    if (userRole === "Admin") {
-      navigate("/admin/dashboard");
-    } else if (userRole === "Doctor") {
-      navigate("/doctor/dashboard");
-    } else {
-      setMessage("Access denied: Only Admin or Doctor roles are supported here.");
-    }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    setMessage(
-      error.response?.data?.message || "Login failed. Please try again."
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-purple-600"
-        onSubmit={handleSubmit}
-      >
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-purple-600">
         <div className="mb-6 text-center">
           <p className="text-2xl font-semibold text-purple-600">
-            <span className="font-bold">{role}</span> Login
+            {role} Login
           </p>
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="email" className="text-purple-600 text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border border-purple-600 rounded-lg"
-            placeholder={`${role.toLowerCase()}@example.com`}
-          />
-        </div>
-
-        <div className="mb-6">
-          <label htmlFor="password" className="text-purple-600 text-sm font-medium">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border border-purple-600 rounded-lg"
-            placeholder="********"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
-          disabled={isLoading}
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={handleSubmit}
+          enableReinitialize
         >
-          {isLoading ? "Logging in..." : "Login"}
-        </button>
+          {({ isSubmitting }) => (
+            <Form>
+              <div className="mb-4">
+                <label
+                  htmlFor="emailOrUsername"
+                  className="text-purple-600 text-sm font-medium"
+                >
+                  {role === "Admin" ? "Username" : "Email"}
+                </label>
+                <Field
+                  name="emailOrUsername"
+                  type={role === "Admin" ? "text" : "email"}
+                  placeholder={role === "Admin" ? "admin123" : "doctor@email.com"}
+                  className="w-full px-4 py-2 border border-purple-600 rounded-lg"
+                />
+                <ErrorMessage
+                  name="emailOrUsername"
+                  component="div"
+                  className="text-red-600 text-sm mt-1"
+                />
+              </div>
 
-        {message && (
-          <p className="mt-4 text-center text-sm text-red-600">{message}</p>
-        )}
+              <div className="mb-4">
+                <label
+                  htmlFor="password"
+                  className="text-purple-600 text-sm font-medium"
+                >
+                  Password
+                </label>
+                <Field
+                  name="password"
+                  type="password"
+                  placeholder="********"
+                  className="w-full px-4 py-2 border border-purple-600 rounded-lg"
+                />
+                <ErrorMessage
+                  name="password"
+                  component="div"
+                  className="text-red-600 text-sm mt-1"
+                />
+              </div>
 
-        <div className="mt-4 text-center">
-          <p className="text-sm text-purple-600">
-            {role === "Admin" ? "Doctor" : "Admin"} Login?{" "}
-            <button type="button" onClick={toggleRole} className="underline font-medium">
-              Click here
-            </button>
-          </p>
-        </div>
-      </form>
+              <div className="flex items-center justify-between mb-4">
+                <label className="inline-flex items-center">
+                  <Field type="checkbox" name="rememberMe" className="mr-2" />
+                  <span className="text-sm text-gray-700">Remember Me</span>
+                </label>
+                <a
+                  href="#"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  Forgot Password?
+                </a>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting || isLoading}
+                className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
+              >
+                {isLoading ? "Logging in..." : "Login"}
+              </button>
+
+              {message && (
+                <p className="mt-4 text-center text-sm text-red-600">
+                  {message}
+                </p>
+              )}
+
+              <div className="mt-4 text-center">
+                <p className="text-sm text-purple-600">
+                  {role === "Admin" ? "Doctor" : "Admin"} Login?{" "}
+                  <button
+                    type="button"
+                    onClick={toggleRole}
+                    className="underline font-medium"
+                  >
+                    Click here
+                  </button>
+                </p>
+              </div>
+            </Form>
+          )}
+        </Formik>
+      </div>
     </div>
   );
 };

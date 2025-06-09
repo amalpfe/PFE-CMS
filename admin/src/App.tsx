@@ -15,6 +15,7 @@ function App() {
     <div className="min-h-screen w-full bg-gray-50"> {/* Fullscreen container */}
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/appointments" element={<Appointments />} />
         <Route path="/admin/doctors" element={<Doctors />} />

@@ -9,7 +9,7 @@ router.get('/recent-appointments',AdminController.getRecentAppointments);
 router.get('/appointments', AdminController.getAllAppointments);
 router.put('/appointments/:id', AdminController.updateAppointmentStatus);
 
-router.post("/doctor",AdminController.addDoctor)
+// router.post("/doctor",AdminController.addDoctor)
 
 // Get count of doctors (optional extra route)
 router.get('/doctors/counts', AdminController.getDoctorsCount);
@@ -21,7 +21,7 @@ router.get('/doctors', AdminController.getDoctors);
 router.get('/doctors/:id', AdminController.getDoctorById);
 
 // Create a new doctor
-router.post('/doctors', AdminController.createDoctor);
+// router.post('/doctors', AdminController.createDoctor);
 
 // Update doctor by ID
 router.put('/doctors/:id', AdminController.updateDoctor);

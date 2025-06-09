@@ -258,7 +258,7 @@ exports.updateProfile = async (req, res) => {
 const db = require('../../config'); // or your actual db module
 const bcrypt = require('bcrypt');
 // const jwt = require('jsonwebtoken');
-const saltRounds = 10;
+// const saltRounds = 10;
 
 exports.createDoctor = async (req, res) => {
   const {
@@ -271,21 +271,20 @@ exports.createDoctor = async (req, res) => {
     phoneNumber,
     address,
     degree,
-    professional_registration_number,
     fees,
+    experience,
     about,
     image,
-    hiringDate,
-    availability, // array: [{ dayOfWeek, startTime, endTime }]
+    availability // Expecting an array of { dayOfWeek, startTime, endTime }
   } = req.body;
 
   const conn = await db.getConnection();
   await conn.beginTransaction();
 
   try {
-    // Check if user already exists
+    // Check if doctor with same username or email already exists
     const [existing] = await conn.query(
-      "SELECT id FROM user WHERE username = ? OR email = ?",
+      "SELECT id FROM doctor WHERE username = ? OR email = ?",
       [username, email]
     );
     if (existing.length > 0) {
@@ -293,47 +292,46 @@ exports.createDoctor = async (req, res) => {
       return res.status(400).json({ message: "Username or email already exists" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const [userResult] = await conn.query(
-      `INSERT INTO user (username, passwordHash, email, role)
-       VALUES (?, ?, ?, 'Doctor')`,
-      [username, hashedPassword, email]
-    );
-    const userId = userResult.insertId;
-
-    // Create doctor info linked to userId
-    const [doctorResult] = await conn.query(
+    // Insert into doctor table
+    const [result] = await conn.query(
       `INSERT INTO doctor (
-        userId, firstName, lastName, specialty, phoneNumber,
-        email, password, address, degree, professional_registration_number,
-        fees, about, image, hiringDate
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        firstName, lastName, specialty, phoneNumber, email,
+        address, degree, fees, experience, about,
+        image, username, passwordHash, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
-        userId, firstName, lastName, specialty, phoneNumber,
-        email, hashedPassword, address, degree, professional_registration_number,
-        fees, about, image, hiringDate
+        firstName, lastName, specialty, phoneNumber, email,
+        address, degree, fees, experience, about,
+        image, username, hashedPassword
       ]
     );
 
-    const doctorId = doctorResult.insertId;
+    const doctorId = result.insertId;
 
-    // Insert availability if provided
-    if (Array.isArray(availability)) {
-      for (const slot of availability) {
-        const { dayOfWeek, startTime, endTime } = slot;
-        await conn.query(
-          `INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime)
-           VALUES (?, ?, ?, ?)`,
-          [doctorId, dayOfWeek, startTime, endTime]
-        );
-      }
+    if (availability && availability.length > 0) {
+      const availabilityValues = availability.map(({ dayOfWeek, startTime, endTime }) => [
+        doctorId,
+        dayOfWeek,
+        startTime,
+        endTime,
+      ]);
+
+      // Prepare placeholders for bulk insert
+      const placeholders = availabilityValues.map(() => "(?, ?, ?, ?)").join(", ");
+
+      // Flatten the array of values
+      const flattenedValues = availabilityValues.flat();
+
+      await conn.query(
+        `INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime) VALUES ${placeholders}`,
+        flattenedValues
+      );
     }
 
     await conn.commit();
-    res.status(201).json({ message: "Doctor created successfully", doctorId, userId });
+    res.status(201).json({ message: "Doctor created successfully", doctorId });
   } catch (err) {
     await conn.rollback();
     console.error("Error creating doctor:", err);
@@ -342,6 +340,8 @@ exports.createDoctor = async (req, res) => {
     conn.release();
   }
 };
+
+
 
 
 

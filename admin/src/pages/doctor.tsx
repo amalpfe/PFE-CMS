@@ -10,9 +10,10 @@ const Doctors = () => {
     specialty: "",
     phoneNumber: "",
     email: "",
-    password: "",
+    password: "",  // You may remove password if not needed anymore
     address: "",
     degree: "",
+    experience: "", 
     professional_registration_number: "",
     fees: "",
     about: "",
@@ -48,9 +49,7 @@ const Doctors = () => {
 
   const handleAvailabilityChange = (index: number, field: string, value: string) => {
     setAvailability((prev) =>
-      prev.map((slot, i) =>
-        i === index ? { ...slot, [field]: value } : slot
-      )
+      prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot))
     );
   };
 
@@ -60,77 +59,60 @@ const Doctors = () => {
   const removeAvailability = (index: number) =>
     setAvailability((prev) => prev.filter((_, i) => i !== index));
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  try {
-    const userPayload = {
-      username: formData.email,
-      password: formData.password,
-      email: formData.email,
-      role: "Doctor",
-    };
+    try {
+      // Prepare doctor payload without user registration
+      const doctorPayload = {
+        ...formData,
+        fees: parseFloat(formData.fees) || 0,
+        experience: Number(formData.experience) || 0,
+        availability,
+      };
 
-    // Register user
-    const userRes = await axios.post("http://localhost:5000/auth/register", userPayload);
-    console.log("User registration response:", userRes.data);
+      // Directly create doctor profile
+      const doctorRes = await axios.post(
+        "http://localhost:5000/doctor/createdoctor",
+        doctorPayload
+      );
 
-    // Get user ID from response - adjust keys as needed
-    const userId = userRes.data?.id || userRes.data?.userId || userRes.data?.data?.id;
-
-    if (!userId) {
-      throw new Error("User ID not returned");
-    }
-
-    // Prepare doctor payload including userId
-    const doctorPayload = {
-      ...formData,
-      userId,
-      fees: parseFloat(formData.fees) || 0,
-      availability,
-    };
-
-    // Create doctor profile
-    const doctorRes = await axios.post("http://localhost:5000/doctor/createdoctor", doctorPayload);
-
-    if (doctorRes.status === 201 || doctorRes.status === 200) {
-      alert("Doctor added successfully!");
-      setFormData({
-        firstName: "",
-        lastName: "",
-        specialty: "",
-        phoneNumber: "",
-        email: "",
-        password: "",
-        address: "",
-        degree: "",
-        professional_registration_number: "",
-        fees: "",
-        about: "",
-        image: "",
-        hiringDate: "",
-      });
-      setAvailability([{ dayOfWeek: "", startTime: "", endTime: "" }]);
-    }
-
-  } catch (error: any) {
-    if (error.response) {
-      if (error.response.status === 409) {
-        alert("This email is already registered. Please use another.");
-      } else if (error.response.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert(`Failed to add doctor: ${error.response.statusText}`);
+      if (doctorRes.status === 201 || doctorRes.status === 200) {
+        alert("Doctor added successfully!");
+        setFormData({
+          firstName: "",
+          lastName: "",
+          specialty: "",
+          phoneNumber: "",
+          email: "",
+          password: "",  // Clear if still kept in form
+          address: "",
+          degree: "",
+          experience:"",
+          professional_registration_number: "",
+          fees: "",
+          about: "",
+          image: "",
+          hiringDate: "",
+        });
+        setAvailability([{ dayOfWeek: "", startTime: "", endTime: "" }]);
       }
-      console.error("Backend error:", error.response.data);
-    } else {
-      alert("An unexpected error occurred. Please try again.");
-      console.error("Error adding doctor:", error.message);
+    } catch (error: any) {
+      if (error.response) {
+        if (error.response.status === 409) {
+          alert("This email is already registered. Please use another.");
+        } else if (error.response.data?.message) {
+          alert(error.response.data.message);
+        } else {
+          alert(`Failed to add doctor: ${error.response.statusText}`);
+        }
+        console.error("Backend error:", error.response.data);
+      } else {
+        alert("An unexpected error occurred. Please try again.");
+        console.error("Error adding doctor:", error.message);
+      }
     }
-  }
-};
-
-
+  };
 
   return (
     <Layout>
@@ -169,9 +151,11 @@ const handleSubmit = async (e: React.FormEvent) => {
             { label: "Last Name", name: "lastName" },
             { label: "Phone Number", name: "phoneNumber" },
             { label: "Email", name: "email", type: "email" },
+            // Remove password input if not needed anymore
             { label: "Password", name: "password", type: "password" },
             { label: "Address", name: "address" },
             { label: "Degree", name: "degree" },
+             { label: "Experience (years)", name: "experience", type: "number", min: 0 }, // new field
             {
               label: "Professional Registration Number",
               name: "professional_registration_number",
@@ -249,42 +233,39 @@ const handleSubmit = async (e: React.FormEvent) => {
               Doctor Availability
             </label>
             {availability.map((slot, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-4 gap-4 items-center mb-2"
-              >
+              <div key={index} className="grid grid-cols-4 gap-4 items-center mb-2">
                 <select
                   value={slot.dayOfWeek}
-                  onChange={(e) =>
-                    handleAvailabilityChange(index, "dayOfWeek", e.target.value)
-                  }
+                  onChange={(e) => handleAvailabilityChange(index, "dayOfWeek", e.target.value)}
                   className="px-3 py-2 border rounded"
                   required
                 >
                   <option value="">Day</option>
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
-                    (day) => (
-                      <option key={day} value={day}>
-                        {day}
-                      </option>
-                    )
-                  )}
+                  {[
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                    "Sunday",
+                  ].map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
                 </select>
                 <input
                   type="time"
                   value={slot.startTime}
-                  onChange={(e) =>
-                    handleAvailabilityChange(index, "startTime", e.target.value)
-                  }
+                  onChange={(e) => handleAvailabilityChange(index, "startTime", e.target.value)}
                   className="px-3 py-2 border rounded"
                   required
                 />
                 <input
                   type="time"
                   value={slot.endTime}
-                  onChange={(e) =>
-                    handleAvailabilityChange(index, "endTime", e.target.value)
-                  }
+                  onChange={(e) => handleAvailabilityChange(index, "endTime", e.target.value)}
                   className="px-3 py-2 border rounded"
                   required
                 />
@@ -307,14 +288,12 @@ const handleSubmit = async (e: React.FormEvent) => {
             </button>
           </div>
 
-          <div className="md:col-span-2 flex justify-end">
-            <button
-              type="submit"
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700"
-            >
-              Add Doctor
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="md:col-span-2 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded"
+          >
+            Add Doctor
+          </button>
         </form>
       </div>
     </Layout>
