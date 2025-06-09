@@ -1,114 +1,43 @@
-const pool = require("../../config"); // your MySQL pool
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const db = require('../../config');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-exports.register = async (req, res) => {
-  const { email, password, role } = req.body;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-  try {
-    if (!email || !password || !role) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
+const login = (req, res) => {
+  const { username, password } = req.body;
 
-    const [existingUser] = await pool.query("SELECT * FROM user WHERE email = ?", [email]);
-    if (existingUser.length > 0) {
-      return res.status(409).json({ message: "Email already exists" });
-    }
+  db.query('SELECT * FROM admin WHERE username = ?', [username], async (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error' });
+    if (results.length === 0) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const admin = results[0];
+    const match = await bcrypt.compare(password, admin.passwordHash);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const [result] = await pool.query(
-      "INSERT INTO user (email, passwordHash, role) VALUES (?, ?, ?)", 
-      [email, passwordHash, role]
-    );
-
-    // Return inserted user ID and other info if you want
-    res.status(201).json({ 
-      message: 'User registered successfully', 
-      userId: result.insertId 
-    });
-  } catch (err) {
-    console.error("Register error:", err);
-    res.status(500).json({ message: "Registration failed", error: err });
-  }
+    const token = jwt.sign({ id: admin.id, role: 'admin' }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  });
 };
 
-
-
-exports.login = async (req, res) => {
+const loginDoctor = (req, res) => {
   const { email, password } = req.body;
 
-  console.log("Incoming login request:", req.body); // 👈 add this line
+  db.query('SELECT * FROM doctor WHERE email = ?', [email], async (err, results) => {
+    if (err) return res.status(500).json({ message: 'Database error' });
+    if (results.length === 0) return res.status(401).json({ message: 'Invalid credentials' });
 
-  try {
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
+    const doctor = results[0];
+    const match = await bcrypt.compare(password, doctor.passwordHash);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const [result] = await pool.query("SELECT * FROM user WHERE email = ?", [email]);
-
-    if (result.length === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const user = result[0];
-    const validPassword = await bcrypt.compare(password, user.passwordHash);
-
-    if (!validPassword) {
-      return res.status(401).json({ message: "Invalid password" });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.status(200).json({
-      token,
-      role: user.role,
-      message: "Login successful",
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ message: "Login error", error: err });
-  }
+    const token = jwt.sign({ id: doctor.id, role: 'doctor' }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  });
 };
 
-
-exports.loginDoctor = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const [rows] = await pool.query('SELECT * FROM doctor WHERE email = ?', [email]);
-
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const doctor = rows[0];
-
-    const isMatch = await bcrypt.compare(password, doctor.password);
-
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-    const token = jwt.sign(
-  { id: doctor.id, role: 'Doctor' }, // role must match what the middleware expects
-  process.env.JWT_SECRET,
-  { expiresIn: '1d' }
-);
-  // Optionally generate JWT here
-  res.status(200).json({
-  token,
-  role: 'Doctor',
-  message: 'Doctor logged in successfully',
-  doctor
-});
-
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error during login' });
-  }
+// ✅ Export as object
+module.exports = {
+  login,
+  loginDoctor
 };
-

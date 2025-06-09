@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Calendar, type Event } from "react-big-calendar";
+
+import "react-big-calendar/lib/css/react-big-calendar.css";
+
+import { localizer } from "../utils/calendarLocalizer";
 
 import Layout from "../components/Layout";
 
@@ -7,6 +12,7 @@ import DoctorIcon from "../assets/doctor_icon.svg";
 import PatientIcon from "../assets/patients_icon.svg";
 import AppointmentIcon from "../assets/appointments_icon.svg";
 import FeesIcon from "../assets/earning_icon.svg"; // Add your fees icon here
+
 
 type Appointment = {
   patientName: string;
@@ -31,7 +37,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Fetch counts including total fees
+        // Fetch counts
         const countsResponse = await axios.get("http://localhost:5000/admin/counts");
         setCounts({
           doctors: countsResponse.data.doctors,
@@ -63,11 +69,20 @@ const Dashboard = () => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
 
+  // Convert appointments to calendar events
+  const events: Event[] = recentAppointments.map((appointment) => ({
+    title: `${appointment.patientName} with Dr. ${appointment.doctorName}`,
+    start: new Date(appointment.appointmentDate),
+    end: new Date(appointment.appointmentDate),
+    allDay: false,
+  }));
+
   return (
     <Layout>
       <div className="p-6">
         <h1 className="text-3xl font-bold text-purple-600 mb-6">Admin Dashboard</h1>
 
+        {/* Statistic Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Doctor Card */}
           <div className="bg-white shadow-md rounded-2xl p-6 flex items-center gap-4">
@@ -108,50 +123,17 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Appointments Table */}
-        <div className="mt-10">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Recent Appointments</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white shadow-md rounded-xl overflow-hidden">
-              <thead className="bg-purple-600 text-white">
-                <tr>
-                  <th className="py-3 px-4 text-left">Patient</th>
-                  <th className="py-3 px-4 text-left">Doctor</th>
-                  <th className="py-3 px-4 text-left">Date</th>
-                  <th className="py-3 px-4 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentAppointments.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-3 px-4 text-center text-gray-500">
-                      No recent appointments found.
-                    </td>
-                  </tr>
-                ) : (
-                  recentAppointments.map((appt, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="py-3 px-4">{appt.patientName}</td>
-                      <td className="py-3 px-4">{appt.doctorName}</td>
-                      <td className="py-3 px-4">{new Date(appt.appointmentDate).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-sm ${
-                            appt.appointmentStatus === "Completed"
-                              ? "bg-green-100 text-green-700"
-                              : appt.appointmentStatus === "Pending"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {appt.appointmentStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {/* Calendar Section */}
+        <div className="mt-10 bg-white shadow-md rounded-2xl p-6">
+          <h2 className="text-2xl font-semibold text-purple-600 mb-4">Doctor Appointments Calendar</h2>
+          <div className="h-[500px]">
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: "100%", width: "100%" }}
+            />
           </div>
         </div>
       </div>

@@ -25,5 +25,6 @@ router.get('/profile/:id', DoctorController.getProfile);
 
 // Update doctor profile by doctorId
 router.put('/profile/:id', DoctorController.updateProfile);
+router.post('/login', DoctorController.loginDoctor);
 
 module.exports = router;
