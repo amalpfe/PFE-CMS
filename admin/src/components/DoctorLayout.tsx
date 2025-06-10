@@ -1,6 +1,7 @@
 import Navbar from "./DoctorNavbar";
 import Sidebar from "./DoctorSidebar";
 
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex flex-col h-screen bg-gray-100">

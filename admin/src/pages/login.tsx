@@ -10,7 +10,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
-  
 
   const toggleRole = () => {
     setRole((prev) => (prev === "Admin" ? "Doctor" : "Admin"));
@@ -41,7 +40,8 @@ const Login = () => {
         localStorage.setItem("user", JSON.stringify(admin));
         navigate("/admin/dashboard");
       } else {
-        localStorage.setItem("user", JSON.stringify(doctor));
+        localStorage.setItem("user", JSON.stringify(doctor)); // optional
+        localStorage.setItem("doctor", JSON.stringify(doctor)); // ✅ هذا المهم
         navigate("/doctor/dashboard");
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

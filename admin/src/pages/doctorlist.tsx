@@ -27,6 +27,11 @@ const DoctorList = () => {
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [form, setForm] = useState<Partial<Doctor>>({});
 
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Doctor | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -40,16 +45,15 @@ const DoctorList = () => {
         setLoading(false);
       }
     };
-
     fetchDoctors();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this doctor?");
-    if (confirmDelete) {
+  const handleDeleteConfirm = async () => {
+    if (deleteTarget) {
       try {
-        await axios.delete(`http://localhost:5000/admin/doctors/${id}`);
-        setDoctors((prev) => prev.filter((doc) => doc.id !== id));
+        await axios.delete(`http://localhost:5000/admin/doctors/${deleteTarget.id}`);
+        setDoctors((prev) => prev.filter((doc) => doc.id !== deleteTarget.id));
+        setDeleteTarget(null);
       } catch (err) {
         alert("Failed to delete doctor");
       }
@@ -73,19 +77,25 @@ const DoctorList = () => {
           `http://localhost:5000/admin/doctors/${editingDoctor.id}`,
           form
         );
-
         setDoctors((prev) =>
-          prev.map((doc) =>
-            doc.id === editingDoctor.id ? response.data : doc
-          )
+          prev.map((doc) => (doc.id === editingDoctor.id ? response.data : doc))
         );
-
         setEditingDoctor(null);
       } catch (err) {
         alert("Failed to update doctor");
       }
     }
   };
+
+  const filteredDoctors = doctors.filter((doctor) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      doctor.firstName.toLowerCase().includes(term) ||
+      doctor.lastName.toLowerCase().includes(term) ||
+      doctor.email.toLowerCase().includes(term) ||
+      doctor.specialty.toLowerCase().includes(term)
+    );
+  });
 
   if (loading)
     return (
@@ -105,6 +115,16 @@ const DoctorList = () => {
       <div className="p-6">
         <h1 className="text-3xl font-bold text-purple-600 mb-4">Doctor List</h1>
 
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search by name, email, or specialty..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 border rounded shadow-sm"
+          />
+        </div>
+
         <div className="overflow-x-auto mb-6">
           <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
             <thead className="bg-purple-600 text-white">
@@ -119,7 +139,7 @@ const DoctorList = () => {
               </tr>
             </thead>
             <tbody>
-              {doctors.map((doctor) => (
+              {filteredDoctors.map((doctor) => (
                 <tr key={doctor.id} className="border-b">
                   <td className="py-3 px-4">
                     <img
@@ -143,18 +163,24 @@ const DoctorList = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(doctor.id)}
+                      onClick={() => setDeleteTarget(doctor)}
                       className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
                     >
                       Delete
                     </button>
+                    <button
+                      onClick={() => setSelectedDoctor(doctor)}
+                      className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
+                    >
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
-              {doctors.length === 0 && (
+              {filteredDoctors.length === 0 && (
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-gray-500">
-                    No doctors found.
+                    No matching doctors found.
                   </td>
                 </tr>
               )}
@@ -162,75 +188,101 @@ const DoctorList = () => {
           </table>
         </div>
 
-        {/* Edit Form */}
+        {/* Edit Modal */}
         {editingDoctor && (
-          <div className="bg-gray-100 p-4 rounded shadow-md max-w-xl mx-auto">
-            <h2 className="text-xl font-semibold mb-4 text-purple-700">
-              Edit Doctor: {editingDoctor.firstName} {editingDoctor.lastName}
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                name="firstName"
-                value={form.firstName || ""}
-                onChange={handleChange}
-                placeholder="First Name"
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="lastName"
-                value={form.lastName || ""}
-                onChange={handleChange}
-                placeholder="Last Name"
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="specialty"
-                value={form.specialty || ""}
-                onChange={handleChange}
-                placeholder="Specialty"
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="email"
-                value={form.email || ""}
-                onChange={handleChange}
-                placeholder="Email"
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="phoneNumber"
-                value={form.phoneNumber || ""}
-                onChange={handleChange}
-                placeholder="Phone Number"
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="fees"
-                value={form.fees || ""}
-                onChange={handleChange}
-                placeholder="Fees"
-                className="p-2 border rounded"
-              />
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-xl shadow-lg">
+              <h2 className="text-xl font-semibold mb-4 text-purple-700">
+                Edit Doctor: {editingDoctor.firstName} {editingDoctor.lastName}
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                {["firstName", "lastName", "specialty", "email", "phoneNumber", "fees"].map((field) => (
+                  <input
+                    key={field}
+                    type="text"
+                    name={field}
+                    value={form[field as keyof Doctor] || ""}
+                    onChange={handleChange}
+                    placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                    className="p-2 border rounded"
+                  />
+                ))}
+              </div>
+              <div className="mt-4 flex gap-4">
+                <button
+                  onClick={handleUpdate}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setEditingDoctor(null)}
+                  className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <div className="mt-4 flex gap-4">
-              <button
-                onClick={handleUpdate}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Save Changes
-              </button>
-              <button
-                onClick={() => setEditingDoctor(null)}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-              >
-                Cancel
-              </button>
+          </div>
+        )}
+
+        {/* View Modal */}
+        {selectedDoctor && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl">
+              <h2 className="text-2xl font-bold mb-4 text-purple-700">
+                Doctor Profile
+              </h2>
+              <div className="flex gap-6">
+                <img
+                  src={selectedDoctor.image || "https://via.placeholder.com/150"}
+                  alt={selectedDoctor.firstName}
+                  className="w-40 h-40 object-cover rounded-lg"
+                />
+                <div className="space-y-2">
+                  <p><strong>Name:</strong> {selectedDoctor.firstName} {selectedDoctor.lastName}</p>
+                  <p><strong>Specialty:</strong> {selectedDoctor.specialty}</p>
+                  <p><strong>Email:</strong> {selectedDoctor.email}</p>
+                  <p><strong>Phone:</strong> {selectedDoctor.phoneNumber}</p>
+                  <p><strong>Degree:</strong> {selectedDoctor.degree}</p>
+                  <p><strong>Fees:</strong> ${selectedDoctor.fees}</p>
+                  <p><strong>Experience:</strong> {selectedDoctor.experience}</p>
+                  <p><strong>Address:</strong> {selectedDoctor.address}</p>
+                  <p><strong>About:</strong> {selectedDoctor.about}</p>
+                </div>
+              </div>
+              <div className="mt-6 text-right">
+                <button
+                  onClick={() => setSelectedDoctor(null)}
+                  className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteTarget && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
+              <h2 className="text-xl font-bold text-red-600 mb-4">Confirm Deletion</h2>
+              <p>Are you sure you want to delete <strong>{deleteTarget.firstName} {deleteTarget.lastName}</strong>?</p>
+              <div className="mt-6 flex justify-end gap-4">
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         )}

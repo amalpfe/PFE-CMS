@@ -2,14 +2,27 @@ import { useState, useEffect } from "react";
 import DoctorLayout from "../components/DoctorLayout";
 import axios from "axios";
 
-const Profile = () => {
-  const doctorId = 1; // Change dynamically as needed, e.g., route or auth context
+interface Doctor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  degree: string;
+  experience: string;
+  about: string;
+  fees: string;
+  address: string;
+  image: string;
+}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [doctor, setDoctor] = useState<any>(null);
+const DoctorProfile = () => {
+  const storedDoctor = localStorage.getItem("doctor");
+  const doctorData = storedDoctor ? JSON.parse(storedDoctor) : null;
+  const doctorId = doctorData?.id;
+
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [formData, setFormData] = useState<Doctor | null>(null);
   const [editMode, setEditMode] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +38,7 @@ const Profile = () => {
       }
     };
 
-    fetchProfile();
+    if (doctorId) fetchProfile();
   }, [doctorId]);
 
   const handleChange = (
@@ -33,14 +46,15 @@ const Profile = () => {
   ) => {
     const { name, value, type } = e.target;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev: any) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    setFormData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      };
+    });
   };
 
-  // Handle Save: sends formData including base64 image string
   const handleSave = async () => {
     try {
       await axios.put(`http://localhost:5000/doctor/profile/${doctorId}`, formData);
@@ -58,67 +72,51 @@ const Profile = () => {
     setEditMode(false);
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (!doctor) return <div>Doctor profile not found</div>;
+  if (!doctorId) {
+    return <div className="text-center p-4 text-red-600">Unauthorized access</div>;
+  }
+
+  if (loading) return <div className="text-center p-4">Loading...</div>;
+  if (!doctor) return <div className="text-center p-4 text-red-500">Doctor profile not found</div>;
 
   return (
     <DoctorLayout>
-      <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto mt-4">
+      <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto mt-6">
         <div className="flex flex-col items-center">
-          {/* Preview Image */}
           <img
-            src={formData.image || "/doctor-profile-image.jpg"}
+            src={formData?.image || "/doctor-profile-image.jpg"}
             alt="Doctor"
-            className="w-44 h-56 rounded-lg object-cover mb-6"
+            className="w-44 h-56 object-cover rounded mb-4"
           />
 
           {editMode ? (
             <>
               <input
                 name="firstName"
-                value={formData.firstName || ""}
+                value={formData?.firstName || ""}
                 onChange={handleChange}
-                className="text-xl font-semibold text-center text-gray-800 border-b border-gray-300 mb-2"
+                className="text-xl font-semibold text-center border-b border-gray-300 mb-2"
                 placeholder="First Name"
               />
               <input
                 name="lastName"
-                value={formData.lastName || ""}
+                value={formData?.lastName || ""}
                 onChange={handleChange}
-                className="text-xl font-semibold text-center text-gray-800 border-b border-gray-300 mb-2"
+                className="text-xl font-semibold text-center border-b border-gray-300 mb-2"
                 placeholder="Last Name"
               />
               <input
                 name="specialty"
-                value={formData.specialty || ""}
+                value={formData?.specialty || ""}
                 onChange={handleChange}
-                className="text-gray-600 text-sm mt-1 text-center border-b border-gray-300 mb-4"
+                className="text-gray-600 text-sm text-center border-b border-gray-300 mb-4"
                 placeholder="Specialty"
               />
 
-              {/* Image Upload */}
-              <div className="w-full border rounded p-2 mb-4">
-                <label className="block mb-1 font-semibold">Upload Image:</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        setFormData((prev: any) => ({
-                          ...prev,
-                          image: reader.result,
-                          imageFile: file, // optional, if needed for backend upload
-                        }));
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-                {formData.image && (
+              <div className="w-full mb-4">
+                <label className="block font-semibold mb-1">Upload New Image:</label>
+                <input type="file" accept="image/*" onChange={handleImageUpload} />
+                {formData?.image && (
                   <img
                     src={formData.image}
                     alt="Preview"
@@ -132,9 +130,9 @@ const Profile = () => {
               <h1 className="text-2xl font-semibold text-gray-800">
                 {doctor.firstName} {doctor.lastName}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm">
                 {doctor.degree} - {doctor.specialty}
-                <span className="ml-2 text-sm text-gray-500">({doctor.experience})</span>
+                <span className="ml-2 text-xs text-gray-500">({doctor.experience})</span>
               </p>
             </>
           )}
@@ -145,7 +143,7 @@ const Profile = () => {
             <>
               <textarea
                 name="about"
-                value={formData.about || ""}
+                value={formData?.about || ""}
                 onChange={handleChange}
                 rows={4}
                 className="w-full border rounded p-2"
@@ -153,14 +151,14 @@ const Profile = () => {
               />
               <input
                 name="fees"
-                value={formData.fees || ""}
+                value={formData?.fees || ""}
                 onChange={handleChange}
                 className="w-full border rounded p-2"
                 placeholder="Appointment Fee"
               />
               <input
                 name="address"
-                value={formData.address || ""}
+                value={formData?.address || ""}
                 onChange={handleChange}
                 className="w-full border rounded p-2"
                 placeholder="Address"
@@ -169,15 +167,14 @@ const Profile = () => {
           ) : (
             <>
               <p>
-                <span className="font-semibold">About :</span>
-                <br />
+                <span className="font-semibold">About:</span> <br />
                 {doctor.about}
               </p>
               <p>
-                <span className="font-semibold">Appointment Fee :</span> {doctor.fees}
+                <span className="font-semibold">Appointment Fee:</span> {doctor.fees}
               </p>
               <p>
-                <span className="font-semibold">Address :</span> {doctor.address}
+                <span className="font-semibold">Address:</span> {doctor.address}
               </p>
             </>
           )}
@@ -187,24 +184,24 @@ const Profile = () => {
           {editMode ? (
             <>
               <button
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
                 onClick={handleSave}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
               >
                 Save
               </button>
               <button
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
                 onClick={handleCancel}
+                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
               >
                 Cancel
               </button>
             </>
           ) : (
             <button
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded"
               onClick={() => setEditMode(true)}
+              className="bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200"
             >
-              Edit
+              Edit Profile
             </button>
           )}
         </div>
@@ -213,4 +210,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default DoctorProfile;

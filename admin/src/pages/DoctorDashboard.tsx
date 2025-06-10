@@ -17,9 +17,21 @@ const Dashboard = () => {
 
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  const doctorId = 2; // Replace with actual ID from auth/context
+  // 👇 Use doctor ID from localStorage or auth context
+  const doctorId = (() => {
+    try {
+      const stored = localStorage.getItem("doctor");
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed?.id ?? null;
+    } catch {
+      return null;
+    }
+  })();
 
   useEffect(() => {
+    if (!doctorId) return; // no doctor id, do not fetch
+
     const fetchDashboardData = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/doctor/${doctorId}/dashboard`);
@@ -36,6 +48,8 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, [doctorId]);
+
+  if (!doctorId) return <p>Please login to see dashboard data.</p>;
 
   return (
     <DoctorLayout>

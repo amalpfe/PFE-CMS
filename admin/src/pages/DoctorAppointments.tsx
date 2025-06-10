@@ -4,7 +4,7 @@ import DoctorLayout from "../components/DoctorLayout";
 type Appointment = {
   id: number;
   patient: string;
-  payment?: string; // payment not provided by backend yet? Can be optional
+  payment?: string;
   age: number;
   datetime: string;
   fees: string;
@@ -14,12 +14,30 @@ type Appointment = {
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const doctorId = 2; // or get from route params or context
+  // ✅ Get doctorId from localStorage
+  const doctorId = (() => {
+    try {
+      const stored = localStorage.getItem("doctor");
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed?.id ?? null;
+    } catch {
+      return null;
+    }
+  })();
 
   useEffect(() => {
+    if (!doctorId) {
+      setError("Doctor ID not found. Please login again.");
+      setLoading(false);
+      return;
+    }
+
     const fetchAppointments = async () => {
       try {
         const res = await fetch(
@@ -32,6 +50,7 @@ const Appointments = () => {
 
         const data = await res.json();
         setAppointments(data);
+        setFilteredAppointments(data); // Initialize filtered list
       } catch (err) {
         setError("Failed to fetch appointments.");
         console.error(err);
@@ -42,6 +61,14 @@ const Appointments = () => {
 
     fetchAppointments();
   }, [doctorId]);
+
+  // 🔍 Search by patient name
+  useEffect(() => {
+    const filtered = appointments.filter((appt) =>
+      appt.patient.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredAppointments(filtered);
+  }, [searchTerm, appointments]);
 
   const statusColor = (status: string) => {
     if (status === "Completed") return "text-green-600";
@@ -55,9 +82,19 @@ const Appointments = () => {
   return (
     <DoctorLayout>
       <div className="bg-white p-6 rounded-lg shadow">
-        <h1 className="text-xl font-semibold text-purple-700 mb-6">
-          All Appointments
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-xl font-semibold text-purple-700">
+            All Appointments
+          </h1>
+          <input
+            type="text"
+            placeholder="Search by patient name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border border-purple-400 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full table-auto text-sm text-left">
             <thead>
@@ -72,7 +109,7 @@ const Appointments = () => {
               </tr>
             </thead>
             <tbody>
-              {appointments.map((appt, index) => (
+              {filteredAppointments.map((appt, index) => (
                 <tr key={appt.id} className="border-b hover:bg-gray-50">
                   <td className="py-3 px-4">{index + 1}</td>
                   <td className="py-3 px-4 flex items-center gap-2">
@@ -98,7 +135,7 @@ const Appointments = () => {
                   </td>
                 </tr>
               ))}
-              {appointments.length === 0 && (
+              {filteredAppointments.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center py-4 text-gray-500">
                     No appointments found.

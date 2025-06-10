@@ -59,6 +59,32 @@ exports.getDoctorDashboard = async (req, res) => {
   }
 };
 
+// controllers/doctorController.js
+
+exports.getPatientsByDoctorAppointments = async (req, res) => {
+  const doctorId = parseInt(req.params.doctorId, 10);
+
+  if (isNaN(doctorId)) {
+    return res.status(400).json({ error: "Invalid doctor ID" });
+  }
+
+  try {
+    const [rows] = await db.query(`
+      SELECT DISTINCT p.*
+      FROM appointment a
+      JOIN patient p ON a.patientId = p.id
+      WHERE a.doctorId = ?
+    `, [doctorId]);
+
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Error fetching patients by doctor:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
 
 // Get all appointments for a doctor by doctorId (from URL param)
 
@@ -351,19 +377,19 @@ exports.createDoctor = async (req, res) => {
 
 
 exports.getProfile = async (req, res) => {
-  const doctorId = req.user.doctorId;
+   try {
+    const doctorId = req.params.id;
+const [doctor] = await db.query("SELECT * FROM doctor WHERE id = ?", [doctorId]);
 
-  try {
-    const [rows] = await db.query('SELECT * FROM doctor WHERE id = ?', [doctorId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Doctor not found' });
+    if (doctor.length === 0) {
+      return res.status(404).json({ message: "Doctor not found" });
     }
 
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json(doctor[0]);
+  } catch (err) {
+    console.error("Error fetching doctor profile:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
