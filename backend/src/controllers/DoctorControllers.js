@@ -343,8 +343,6 @@ exports.createDoctor = async (req, res) => {
 
 
 
-
-
 exports.getProfile = async (req, res) => {
   const doctorId = req.user.doctorId;
 
