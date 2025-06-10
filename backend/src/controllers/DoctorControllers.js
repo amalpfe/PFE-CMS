@@ -1,4 +1,10 @@
 // const db = require('../../config');
+const express = require("express");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
+const router = express.Router();
+const db = require('../../config'); // Your MySQL db connection
 
 exports.getDoctorDashboard = async (req, res) => {
   const doctorId = req.params.id;
@@ -255,8 +261,7 @@ exports.updateProfile = async (req, res) => {
 };
 
 /////////////new/////////////
-const db = require('../../config'); // or your actual db module
-const bcrypt = require('bcrypt');
+
 // const jwt = require('jsonwebtoken');
 // const saltRounds = 10;
 
@@ -357,5 +362,46 @@ exports.getProfile = async (req, res) => {
   } catch (error) {
     console.error('Error fetching profile:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.loginDoctor= async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const [doctorRows] = await db.query(
+      "SELECT * FROM doctor WHERE email = ?",
+      [email]
+    );
+
+    if (doctorRows.length === 0) {
+      return res.status(401).json({ message: "Invalid doctor credentials." });
+    }
+
+    const doctor = doctorRows[0];
+
+    const match = await bcrypt.compare(password, doctor.passwordHash);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid password." });
+    }
+
+    const token = jwt.sign({ id: doctor.id, role: "Doctor" }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.json({
+      message: "Doctor login successful!",
+      token,
+      role: "Doctor",
+      doctor: {
+        id: doctor.id,
+        name: `${doctor.firstName} ${doctor.lastName}`,
+        specialty: doctor.specialty,
+        email: doctor.email,
+      },
+    });
+  } catch (err) {
+    console.error("Doctor login error:", err);
+    return res.status(500).json({ message: "Server error during doctor login." });
   }
 };

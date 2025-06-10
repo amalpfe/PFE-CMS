@@ -83,14 +83,23 @@ const handleLogin = async (req, res) => {
 
 //Handle doctors page
 const getAllDoctors = async (req, res) => {
-  const query = `SELECT id, CONCAT(firstName, ' ', lastName) AS name, specialty AS speciality, image AS Image FROM doctor`;
+  const query = `
+    SELECT 
+      id, 
+      CONCAT(firstName, ' ', lastName) AS name, 
+      specialty AS speciality, 
+      image 
+    FROM doctor
+  `;
 
   try {
     const [results] = await pool.query(query);
 
     const updatedResults = results.map((doc) => ({
       ...doc,
-      Image: doc.Image?.startsWith("data:") ? doc.Image : `data:image/png;base64,${doc.Image}`,
+      image: doc.image.startsWith("data:")
+        ? doc.image
+        : `data:image/png;base64,${doc.image}`,
     }));
 
     res.status(200).json(updatedResults);

@@ -1,6 +1,7 @@
 const db = require('../../config');
 const bcrypt = require('bcrypt');
-
+const JWT_SECRET = process.env.JWT_SECRET;
+const jwt = require('jsonwebtoken');
 
 exports.getCounts = async (req, res) => {
   try {
@@ -8,18 +9,10 @@ exports.getCounts = async (req, res) => {
     const [[patients]] = await db.query('SELECT COUNT(*) AS count FROM Patient');
     const [[appointments]] = await db.query('SELECT COUNT(*) AS count FROM Appointment');
 
-    // For total fees, use the same pattern
-    const [feesResult] = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) AS totalFees FROM billing WHERE paymentStatus = 'Paid'`
-    );
-
-    const totalFees = feesResult[0].totalFees;
-
     res.json({
       doctors: doctors.count,
       patients: patients.count,
       appointments: appointments.count,
-      totalFees: parseFloat(totalFees),
     });
   } catch (err) {
     console.error(err);
@@ -120,27 +113,27 @@ exports.getDoctorById = async (req, res) => {
 };
 
 // POST create doctor
-// exports.createDoctor = async (req, res) => {
-//   const {
-//     userId, firstName, lastName, specialty, phoneNumber, email,
-//     address, degree, fees, experience, about, image,
-//   } = req.body;
+exports.createDoctor = async (req, res) => {
+  const {
+    userId, firstName, lastName, specialty, phoneNumber, email,
+    address, degree, fees, experience, about, image,
+  } = req.body;
 
-//   try {
-//     const [result] = await db.query(
-//       `INSERT INTO doctor 
-//       (userId, firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image, createdAt, updatedAt)
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-//       [userId, firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image]
-//     );
+  try {
+    const [result] = await db.query(
+      `INSERT INTO doctor 
+      (userId, firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [userId, firstName, lastName, specialty, phoneNumber, email, address, degree, fees, experience, about, image]
+    );
 
-//     const [newDoctor] = await db.query('SELECT * FROM doctor WHERE id = ?', [result.insertId]);
-//     res.status(201).json(newDoctor[0]);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(400).json({ error: 'Failed to create doctor' });
-//   }
-// };
+    const [newDoctor] = await db.query('SELECT * FROM doctor WHERE id = ?', [result.insertId]);
+    res.status(201).json(newDoctor[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: 'Failed to create doctor' });
+  }
+};
 
 // PUT update doctor
 exports.updateDoctor = async (req, res) => {
@@ -186,86 +179,146 @@ exports.getDoctorsCount = async (req, res) => {
 };
 
 //new functions used 
-// exports.addDoctor = async (req, res) => {
-//   const connection = await db.getConnection();
-//   await connection.beginTransaction();
+exports.addDoctor = async (req, res) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
 
-//   try {
-//     const {
-//       userId,
-//       firstName,
-//       lastName,
-//       specialty,
-//       phoneNumber,
-//       email,
-//       password,
-//       address,
-//       degree,
-//       professional_registration_number,
-//       fees,
-//       about,
-//       image,
-//       hiringDate,
-//       availability,
-//     } = req.body;
+  try {
+    const {
+      userId,
+      firstName,
+      lastName,
+      specialty,
+      phoneNumber,
+      email,
+      password,
+      address,
+      degree,
+      professional_registration_number,
+      fees,
+      about,
+      image,
+      hiringDate,
+      availability,
+    } = req.body;
 
-//     // Hash the password
-//     const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-//     const doctorSql = `
-//       INSERT INTO doctor 
-//       (userId, firstName, lastName, specialty, phoneNumber, email, password, address, degree, professional_registration_number, fees, about, image, hiringDate)
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-//     `;
+    const doctorSql = `
+      INSERT INTO doctor 
+      (userId, firstName, lastName, specialty, phoneNumber, email, password, address, degree, professional_registration_number, fees, about, image, hiringDate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
-//     const [doctorResult] = await connection.query(doctorSql, [
-//       userId,
-//       firstName,
-//       lastName,
-//       specialty,
-//       phoneNumber,
-//       email,
-//       hashedPassword,
-//       address,
-//       degree,
-//       professional_registration_number,
-//       fees,
-//       about,
-//       image,
-//       hiringDate,
-//     ]);
+    const [doctorResult] = await connection.query(doctorSql, [
+      userId,
+      firstName,
+      lastName,
+      specialty,
+      phoneNumber,
+      email,
+      hashedPassword,
+      address,
+      degree,
+      professional_registration_number,
+      fees,
+      about,
+      image,
+      hiringDate,
+    ]);
 
-//     const doctorId = doctorResult.insertId;
+    const doctorId = doctorResult.insertId;
 
-//     const availabilitySql = `
-//       INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime)
-//       VALUES (?, ?, ?, ?)
-//     `;
+    const availabilitySql = `
+      INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime)
+      VALUES (?, ?, ?, ?)
+    `;
 
-//     const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
-//     for (const slot of availability) {
-//       const { dayOfWeek, startTime, endTime } = slot;
+    for (const slot of availability) {
+      const { dayOfWeek, startTime, endTime } = slot;
 
-//       const formattedStartTime = `${today} ${startTime}:00`;
-//       const formattedEndTime = `${today} ${endTime}:00`;
+      const formattedStartTime = `${today} ${startTime}:00`;
+      const formattedEndTime = `${today} ${endTime}:00`;
 
-//       await connection.query(availabilitySql, [
-//         doctorId,
-//         dayOfWeek,
-//         formattedStartTime,
-//         formattedEndTime,
-//       ]);
-//     }
+      await connection.query(availabilitySql, [
+        doctorId,
+        dayOfWeek,
+        formattedStartTime,
+        formattedEndTime,
+      ]);
+    }
 
-//     await connection.commit();
-//     res.status(201).json({ message: "Doctor and availability added successfully" });
-//   } catch (error) {
-//     await connection.rollback();
-//     console.error("Error adding doctor and availability:", error);
-//     res.status(500).json({ error: "Failed to add doctor and availability" });
-//   } finally {
-//     connection.release();
-//   }
-// };
+    await connection.commit();
+    res.status(201).json({ message: "Doctor and availability added successfully" });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error adding doctor and availability:", error);
+    res.status(500).json({ error: "Failed to add doctor and availability" });
+  } finally {
+    connection.release();
+  }
+};
+exports.loginAdmin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const [adminRows] = await db.query(
+      "SELECT * FROM admin WHERE username = ?",
+      [email]
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(401).json({ message: "Invalid admin credentials." });
+    }
+
+    const admin = adminRows[0];
+
+    const match = await bcrypt.compare(password, admin.passwordHash);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid password." });
+    }
+
+    const token = jwt.sign({ id: admin.id, role: "Admin" }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.json({
+      message: "Admin login successful!",
+      token,
+      role: "Admin",
+      admin: {
+        id: admin.id,
+        username: admin.username,
+      },
+    });
+  } catch (err) {
+    console.error("Admin login error:", err);
+    return res.status(500).json({ message: "Server error during admin login." });
+  }
+};
+
+async function createAdmin(username, plainPassword) {
+  try {
+    // Hash the plain password with 10 salt rounds
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    // Insert admin into the database with hashed password
+    const [result] = await db.query(
+      "INSERT INTO admin (username, passwordHash) VALUES (?, ?)",
+      [username, hashedPassword]
+    );
+
+    console.log("Admin created with ID:", result.insertId);
+  } catch (err) {
+    console.error("Error creating admin:", err);
+  }
+}
+
+// Usage
+// createAdmin("admin@example.comr", "admin123"); 
+
+
 
