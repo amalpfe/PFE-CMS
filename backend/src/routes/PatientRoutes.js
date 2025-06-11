@@ -17,6 +17,8 @@ router.get("/doctor/:id", Controller.getDoctorDetails);
 router.get("/appointments/:patientId", Controller.getAppointmentsByPatient);
 
 router.get("/reports/:patientId", Controller.getMedicalRecordsByPatientId);
+router.get("/:patientId/lab-results", Controller.getLabResults);
+
 router.put("/profile/:id" , Controller.UpdateProfile);
 router.put("/cancel-appointment/:appointmentId", Controller.cancelAppointment);
 
@@ -28,5 +30,6 @@ router.delete("/patients/:id", Controller.deletePatient);
 
 // UPDATE patient by ID
 router.put("/patients/:id", Controller.updatePatient);
+router.get("/notifications/:patientId", Controller.notifApp);
 
 module.exports = router;

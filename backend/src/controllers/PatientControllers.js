@@ -2,7 +2,7 @@
 const axios = require('axios'); 
 const { validationResult } = require('express-validator');// controllers/signupController.js
 const bcrypt = require('bcryptjs');
-
+const db = require('../../config');
 const saltRounds = 10;
 
 const pool = require('../../config'); // Assuming your MySQL pool is configured in config.js
@@ -301,6 +301,25 @@ const getMedicalRecordsByPatientId = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch medical records." });
   }
 };
+
+const getLabResults = (req, res) => {
+  const patientId = req.params.patientId;
+
+  const query = `
+    SELECT * FROM labtestresult
+    WHERE patientId = ?
+    ORDER BY testDate DESC
+  `;
+
+  db.query(query, [patientId], (err, results) => {
+    if (err) {
+      console.error("Error fetching lab results:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(results);
+  });
+};
+
 const contactUs = async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -476,6 +495,20 @@ const cancelAppointment = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to cancel appointment." });
   }
 };
+ const notifApp = async (req, res) => {
+  const { patientId } = req.params;
+
+  try {
+    const [notifications] = await db.query(
+      'SELECT * FROM notifications WHERE patientId = ? ORDER BY createdAt DESC',
+      [patientId]
+    );
+    res.json(notifications);
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ message: 'Failed to fetch notifications' });
+  }
+};
 
 module.exports = {
   handleSignup,
@@ -487,6 +520,7 @@ module.exports = {
   getAppointmentsByPatient,
   getProfile,
   getMedicalRecordsByPatientId,
+  getLabResults,
   contactUs,
   UpdateProfile,
   submitFeedback,
@@ -494,4 +528,5 @@ module.exports = {
   deletePatient,
   updatePatient,
   cancelAppointment,
+  notifApp
 };

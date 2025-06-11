@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import DoctorLayout from "../components/DoctorLayout";
+import moment from "moment";
 
 type Appointment = {
   id: number;
@@ -16,10 +17,10 @@ const Appointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "today" | "month">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Get doctorId from localStorage
   const doctorId = (() => {
     try {
       const stored = localStorage.getItem("doctor");
@@ -40,17 +41,10 @@ const Appointments = () => {
 
     const fetchAppointments = async () => {
       try {
-        const res = await fetch(
-          `http://localhost:5000/doctor/${doctorId}/appointments/detailed`
-        );
-
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
+        const res = await fetch(`http://localhost:5000/doctor/${doctorId}/appointments/detailed`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         setAppointments(data);
-        setFilteredAppointments(data); // Initialize filtered list
       } catch (err) {
         setError("Failed to fetch appointments.");
         console.error(err);
@@ -62,18 +56,60 @@ const Appointments = () => {
     fetchAppointments();
   }, [doctorId]);
 
-  // 🔍 Search by patient name
+  // Apply filters (date + search)
   useEffect(() => {
-    const filtered = appointments.filter((appt) =>
-      appt.patient.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = [...appointments];
+
+    if (filterType === "today") {
+      filtered = filtered.filter((appt) =>
+        moment(appt.datetime).isSame(moment(), "day")
+      );
+    } else if (filterType === "month") {
+      filtered = filtered.filter((appt) =>
+        moment(appt.datetime).isSame(moment(), "month")
+      );
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter((appt) =>
+        appt.patient.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     setFilteredAppointments(filtered);
-  }, [searchTerm, appointments]);
+  }, [searchTerm, appointments, filterType]);
 
   const statusColor = (status: string) => {
     if (status === "Completed") return "text-green-600";
     if (status === "Cancelled") return "text-red-500";
     return "text-gray-500";
+  };
+
+  const handleCancel = async (appointmentId: number) => {
+    const confirm = window.confirm("Are you sure you want to cancel this appointment?");
+    if (!confirm) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/doctor/appointments/${appointmentId}/cancel`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to cancel appointment");
+
+      // Update status in the UI
+      setAppointments((prev) =>
+        prev.map((appt) =>
+          appt.id === appointmentId ? { ...appt, status: "Cancelled" } : appt
+        )
+      );
+    } catch (err) {
+      console.error("Error cancelling appointment:", err);
+      alert("Failed to cancel appointment. Try again.");
+    }
   };
 
   if (loading) return <p>Loading appointments...</p>;
@@ -83,9 +119,7 @@ const Appointments = () => {
     <DoctorLayout>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-xl font-semibold text-purple-700">
-            All Appointments
-          </h1>
+          <h1 className="text-xl font-semibold text-purple-700">All Appointments</h1>
           <input
             type="text"
             placeholder="Search by patient name..."
@@ -93,6 +127,23 @@ const Appointments = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="border border-purple-400 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-3 mb-6">
+          {["all", "today", "month"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilterType(type as any)}
+              className={`px-4 py-2 rounded-md text-sm border ${
+                filterType === type
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-purple-600 border-purple-600"
+              }`}
+            >
+              {type === "all" ? "All" : type === "today" ? "Today" : "This Month"}
+            </button>
+          ))}
         </div>
 
         <div className="overflow-x-auto">
@@ -105,6 +156,7 @@ const Appointments = () => {
                 <th className="py-3 px-4 font-medium">Age</th>
                 <th className="py-3 px-4 font-medium">Date & Time</th>
                 <th className="py-3 px-4 font-medium">Fees</th>
+                <th className="py-3 px-4 font-medium">Status</th>
                 <th className="py-3 px-4 font-medium">Action</th>
               </tr>
             </thead>
@@ -133,11 +185,23 @@ const Appointments = () => {
                       {appt.status}
                     </span>
                   </td>
+                  <td className="py-3 px-4">
+                    {appt.status !== "Cancelled" ? (
+                      <button
+                        onClick={() => handleCancel(appt.id)}
+                        className="text-red-600 hover:underline text-sm"
+                      >
+                        Cancel
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-sm">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {filteredAppointments.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-gray-500">
+                  <td colSpan={8} className="text-center py-4 text-gray-500">
                     No appointments found.
                   </td>
                 </tr>

@@ -374,8 +374,6 @@ exports.createDoctor = async (req, res) => {
 
 
 
-
-
 exports.getProfile = async (req, res) => {
    try {
     const doctorId = req.params.id;
@@ -431,5 +429,36 @@ exports.loginDoctor= async (req, res) => {
   } catch (err) {
     console.error("Doctor login error:", err);
     return res.status(500).json({ message: "Server error during doctor login." });
+  }
+};
+exports.cancelAppointment = async (req, res) => {
+  const { appointmentId } = req.params;
+
+  try {
+    // 1. Get appointment info (including patientId and doctor name)
+    const [result] = await db.query(`
+      SELECT a.patientId, d.firstName AS doctorFirstName, d.lastName AS doctorLastName
+      FROM appointment a
+      JOIN doctor d ON a.doctorId = d.id
+      WHERE a.id = ?
+    `, [appointmentId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    const { patientId, doctorFirstName, doctorLastName } = result[0];
+
+    // 2. Update appointment status to "Cancelled"
+    await db.query('UPDATE appointment SET appointmentStatus = ? WHERE id = ?', ['Cancelled', appointmentId]);
+
+    // 3. Send notification to patient
+    const message = `Your appointment with Dr. ${doctorFirstName} ${doctorLastName} has been cancelled.`;
+    await db.query('INSERT INTO notifications (patientId, message) VALUES (?, ?)', [patientId, message]);
+
+    res.json({ message: 'Appointment cancelled and notification sent' });
+  } catch (error) {
+    console.error('Error cancelling appointment:', error);
+    res.status(500).json({ message: 'Server error cancelling appointment' });
   }
 };
