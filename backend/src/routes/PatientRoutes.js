@@ -31,5 +31,6 @@ router.delete("/patients/:id", Controller.deletePatient);
 // UPDATE patient by ID
 router.put("/patients/:id", Controller.updatePatient);
 router.get("/notifications/:patientId", Controller.notifApp);
+router.get("/appointment/:doctorId", Controller.getDoctorAppointments);
 
 module.exports = router;

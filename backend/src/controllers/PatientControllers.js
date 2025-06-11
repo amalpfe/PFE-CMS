@@ -9,23 +9,30 @@ const pool = require('../../config'); // Assuming your MySQL pool is configured 
 const jwt = require('jsonwebtoken');
 // Handle user signup
 const handleSignup = async (req, res) => {
-  const { username, email, password, confirmPassword } = req.body;
+  const { firstName, lastName, email, username, password, confirmPassword } = req.body;
 
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Passwords do not match" });
   }
 
   try {
-    const [existing] = await pool.query("SELECT id FROM patient WHERE username = ?", [username]);
-    if (existing.length > 0) {
+    // Check if email already exists
+    const [existingEmail] = await pool.query("SELECT id FROM patient WHERE email = ?", [email]);
+    if (existingEmail.length > 0) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
+    // Check if username already exists
+    const [existingUsername] = await pool.query("SELECT id FROM patient WHERE username = ?", [username]);
+    if (existingUsername.length > 0) {
       return res.status(409).json({ message: "Username already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     await pool.query(
-      "INSERT INTO patient (username, email, passwordHash) VALUES (?, ?, ?)",
-      [username, email, hashedPassword]
+      "INSERT INTO patient (firstName, lastName, email, username, passwordHash) VALUES (?, ?, ?, ?, ?)",
+      [firstName, lastName, email, username, hashedPassword]
     );
 
     res.status(201).json({ message: "Account created successfully" });
@@ -34,6 +41,8 @@ const handleSignup = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
 //Handle user login
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -509,6 +518,22 @@ const cancelAppointment = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch notifications' });
   }
 };
+// GET /patient/appointments/:doctorId
+const getDoctorAppointments = async (req, res) => {
+  const { doctorId } = req.params;
+
+  try {
+    const [appointments] = await db.query(
+      `SELECT appointmentDate FROM appointment
+       WHERE doctorId = ? AND appointmentStatus = 'Scheduled'`,
+      [doctorId]
+    );
+    res.json(appointments);
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
+    res.status(500).json({ message: "Failed to fetch appointments" });
+  }
+};
 
 module.exports = {
   handleSignup,
@@ -528,5 +553,6 @@ module.exports = {
   deletePatient,
   updatePatient,
   cancelAppointment,
-  notifApp
+  notifApp,
+  getDoctorAppointments
 };

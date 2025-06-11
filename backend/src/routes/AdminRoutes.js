@@ -7,7 +7,7 @@ router.get('/counts', AdminController.getCounts);
 router.get('/recent-appointments',AdminController.getRecentAppointments);
 // Appointment routes
 router.get('/appointments', AdminController.getAllAppointments);
-router.put('/appointments/:id', AdminController.updateAppointmentStatus);
+router.put('/appointments/:id', AdminController.cancelAppointment);
 
 router.post("/doctor",AdminController.addDoctor)
 router.post("/login",AdminController.loginAdmin)

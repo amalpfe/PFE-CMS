@@ -138,6 +138,7 @@ function Appointment() {
     setSlotTime("");
   }, [slotIndex]);
 
+  
   const handleBooking = async () => {
     if (!slotTime || !docSlots[slotIndex]?.length || !patientId) return;
 

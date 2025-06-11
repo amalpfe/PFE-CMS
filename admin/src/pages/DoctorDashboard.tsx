@@ -57,7 +57,9 @@ const Dashboard = () => {
     try {
       const res = await axios.get(`http://localhost:5000/doctor/${doctorId}/appointments/detailed`);
       const transformed = res.data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((item: any) => item.status !== "Cancelled")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((item: any) => ({
           id: item.id,
           patientId: item.patientId ?? 0,

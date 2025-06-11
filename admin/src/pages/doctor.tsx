@@ -3,6 +3,12 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import uploadIcon from "../assets/upload_area.svg";
 
+// Utility to generate random password
+const generateRandomPassword = (length = 10) => {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+};
+
 const Doctors = () => {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -10,10 +16,9 @@ const Doctors = () => {
     specialty: "",
     phoneNumber: "",
     email: "",
-    password: "",  // You may remove password if not needed anymore
     address: "",
     degree: "",
-    experience: "", 
+    experience: "",
     professional_registration_number: "",
     fees: "",
     about: "",
@@ -63,32 +68,32 @@ const Doctors = () => {
     e.preventDefault();
 
     try {
-      // Prepare doctor payload without user registration
+      const generatedPassword = generateRandomPassword();
+
       const doctorPayload = {
         ...formData,
+        password: generatedPassword, // auto-generated
         fees: parseFloat(formData.fees) || 0,
         experience: Number(formData.experience) || 0,
         availability,
       };
 
-      // Directly create doctor profile
       const doctorRes = await axios.post(
         "http://localhost:5000/doctor/createdoctor",
         doctorPayload
       );
 
       if (doctorRes.status === 201 || doctorRes.status === 200) {
-        alert("Doctor added successfully!");
+        alert(`Doctor added successfully! Generated password: ${generatedPassword}`);
         setFormData({
           firstName: "",
           lastName: "",
           specialty: "",
           phoneNumber: "",
           email: "",
-          password: "",  // Clear if still kept in form
           address: "",
           degree: "",
-          experience:"",
+          experience: "",
           professional_registration_number: "",
           fees: "",
           about: "",
@@ -141,21 +146,15 @@ const Doctors = () => {
         </div>
 
         {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          {/* Input fields */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
             { label: "First Name", name: "firstName" },
             { label: "Last Name", name: "lastName" },
             { label: "Phone Number", name: "phoneNumber" },
             { label: "Email", name: "email", type: "email" },
-            // Remove password input if not needed anymore
-            { label: "Password", name: "password", type: "password" },
             { label: "Address", name: "address" },
             { label: "Degree", name: "degree" },
-             { label: "Experience (years)", name: "experience", type: "number", min: 0 }, // new field
+            { label: "Experience (years)", name: "experience", type: "number", min: 0 },
             {
               label: "Professional Registration Number",
               name: "professional_registration_number",
@@ -194,14 +193,11 @@ const Doctors = () => {
             >
               <option value="">Select Specialty</option>
               {[
-                "Cardiologist",
                 "Dermatologist",
                 "Pediatrician",
-                "Orthopedic",
                 "Neurologist",
-                "Psychiatrist",
+                "Gastroenterologist",
                 "Gynecologist",
-                "Dentist",
                 "General Physician",
               ].map((specialty) => (
                 <option key={specialty} value={specialty}>
@@ -241,19 +237,13 @@ const Doctors = () => {
                   required
                 >
                   <option value="">Day</option>
-                  {[
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                  ].map((day) => (
-                    <option key={day} value={day}>
-                      {day}
-                    </option>
-                  ))}
+                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
+                    (day) => (
+                      <option key={day} value={day}>
+                        {day}
+                      </option>
+                    )
+                  )}
                 </select>
                 <input
                   type="time"

@@ -14,6 +14,7 @@ import Assistant from "./pages/Assistant"
 import SignUp from "./pages/Signup";
 import Review from "./pages/Review"
 import Reports from "./pages/Reports";
+import Notifications from "./pages/Notifications";
 function App() {
   return (
     <>
@@ -36,6 +37,7 @@ function App() {
           <Route path="/review/:appointmentId/:patientId/:doctorName" element={<Review />} />
 
           <Route path="/careers" element={<Careers />} />  {/* Careers route */}
+          <Route path="/notifications" element={<Notifications />} />  
           
         </Routes>
         <Footer />

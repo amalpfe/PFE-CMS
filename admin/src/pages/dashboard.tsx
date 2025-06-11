@@ -13,7 +13,6 @@ import PatientIcon from "../assets/patients_icon.svg";
 import AppointmentIcon from "../assets/appointments_icon.svg";
 import FeesIcon from "../assets/earning_icon.svg"; // Add your fees icon here
 
-
 type Appointment = {
   patientName: string;
   doctorName: string;
@@ -30,7 +29,6 @@ const Dashboard = () => {
   });
 
   const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,8 +67,13 @@ const Dashboard = () => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
 
+  // Filter out cancelled appointments
+  const filteredAppointments = recentAppointments.filter(
+    (appointment) => appointment.appointmentStatus.toLowerCase() !== "cancelled"
+  );
+
   // Convert appointments to calendar events
-  const events: Event[] = recentAppointments.map((appointment) => ({
+  const events: Event[] = filteredAppointments.map((appointment) => ({
     title: `${appointment.patientName} with Dr. ${appointment.doctorName}`,
     start: new Date(appointment.appointmentDate),
     end: new Date(appointment.appointmentDate),

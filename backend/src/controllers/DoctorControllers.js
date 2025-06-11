@@ -5,6 +5,8 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 const router = express.Router();
 const db = require('../../config'); // Your MySQL db connection
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 exports.getDoctorDashboard = async (req, res) => {
   const doctorId = req.params.id;
@@ -32,7 +34,7 @@ exports.getDoctorDashboard = async (req, res) => {
       JOIN Patient p ON a.patientId = p.id 
       WHERE a.doctorId = ? 
       ORDER BY a.appointmentDate DESC 
-      LIMIT 4`
+      LIMIT 5`
   };
 
   try {
@@ -295,7 +297,6 @@ exports.createDoctor = async (req, res) => {
   const {
     username,
     email,
-    password,
     firstName,
     lastName,
     specialty,
@@ -306,7 +307,7 @@ exports.createDoctor = async (req, res) => {
     experience,
     about,
     image,
-    availability // Expecting an array of { dayOfWeek, startTime, endTime }
+    availability // array of { dayOfWeek, startTime, endTime }
   } = req.body;
 
   const conn = await db.getConnection();
@@ -323,7 +324,9 @@ exports.createDoctor = async (req, res) => {
       return res.status(400).json({ message: "Username or email already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate a random password
+    const generatedPassword = crypto.randomBytes(6).toString("hex"); // 12-char password
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     // Insert into doctor table
     const [result] = await conn.query(
@@ -341,28 +344,40 @@ exports.createDoctor = async (req, res) => {
 
     const doctorId = result.insertId;
 
+    // Insert availability if provided
     if (availability && availability.length > 0) {
       const availabilityValues = availability.map(({ dayOfWeek, startTime, endTime }) => [
-        doctorId,
-        dayOfWeek,
-        startTime,
-        endTime,
+        doctorId, dayOfWeek, startTime, endTime
       ]);
-
-      // Prepare placeholders for bulk insert
       const placeholders = availabilityValues.map(() => "(?, ?, ?, ?)").join(", ");
-
-      // Flatten the array of values
       const flattenedValues = availabilityValues.flat();
-
       await conn.query(
         `INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime) VALUES ${placeholders}`,
         flattenedValues
       );
     }
 
+    // Email the doctor with their credentials
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"Aeternum " <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Your Account Credentials",
+      text: `Welcome Dr. ${firstName},\n\nYour account has been created.\n\nUsername: ${username}\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password immediately after your first login.\n\nBest regards,\nAmoula lhaboula`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
     await conn.commit();
-    res.status(201).json({ message: "Doctor created successfully", doctorId });
+    res.status(201).json({ message: "Doctor created and credentials sent via email", doctorId });
+
   } catch (err) {
     await conn.rollback();
     console.error("Error creating doctor:", err);
@@ -431,15 +446,19 @@ exports.loginDoctor= async (req, res) => {
     return res.status(500).json({ message: "Server error during doctor login." });
   }
 };
+
+
 exports.cancelAppointment = async (req, res) => {
   const { appointmentId } = req.params;
 
   try {
-    // 1. Get appointment info (including patientId and doctor name)
+    // 1. Get appointment info (including patientId, patient email, and doctor name)
     const [result] = await db.query(`
-      SELECT a.patientId, d.firstName AS doctorFirstName, d.lastName AS doctorLastName
+      SELECT a.patientId, a.appointmentDate, p.email AS patientEmail,
+             d.firstName AS doctorFirstName, d.lastName AS doctorLastName
       FROM appointment a
       JOIN doctor d ON a.doctorId = d.id
+      JOIN patient p ON a.patientId = p.id
       WHERE a.id = ?
     `, [appointmentId]);
 
@@ -447,18 +466,38 @@ exports.cancelAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    const { patientId, doctorFirstName, doctorLastName } = result[0];
+    const { patientId, patientEmail, doctorFirstName, doctorLastName, appointmentDate } = result[0];
 
     // 2. Update appointment status to "Cancelled"
     await db.query('UPDATE appointment SET appointmentStatus = ? WHERE id = ?', ['Cancelled', appointmentId]);
 
-    // 3. Send notification to patient
-    const message = `Your appointment with Dr. ${doctorFirstName} ${doctorLastName} has been cancelled.`;
+    // 3. Send notification to patient in database
+    const message = `Your appointment with Dr. ${doctorFirstName} ${doctorLastName} on ${appointmentDate} has been cancelled.`;
     await db.query('INSERT INTO notifications (patientId, message) VALUES (?, ?)', [patientId, message]);
 
-    res.json({ message: 'Appointment cancelled and notification sent' });
+    // 4. Send email notification to patient
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"Aeternum" <${process.env.EMAIL_USER}>`,
+      to: patientEmail,
+      subject: "Appointment Cancelled",
+      text: `Dear Patient,\n\n${message}\n\nPlease contact us if you want to reschedule.\n\nBest regards,\nYour Clinic Team`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Appointment cancelled, notification sent, and email delivered' });
+
   } catch (error) {
     console.error('Error cancelling appointment:', error);
     res.status(500).json({ message: 'Server error cancelling appointment' });
   }
 };
+

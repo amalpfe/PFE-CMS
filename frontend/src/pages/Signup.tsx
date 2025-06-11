@@ -3,46 +3,50 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SignUp = () => {
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [username, setUsername] = useState<string>(""); // added username state
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
-  const [name, setName] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
- const onSubmitHandler = async (e: FormEvent) => {
-  e.preventDefault();
-  setFormError(null);
-  setSuccessMessage(null);
+  const onSubmitHandler = async (e: FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setSuccessMessage(null);
 
-  if (password !== confirmPassword) {
-    setFormError("Passwords do not match");
-    return;
-  }
-
-  try {
-    const response = await axios.post("http://localhost:5000/patient/signup", {
-      username: name,
-      email,
-      password,
-      confirmPassword,
-    });
-
-    setSuccessMessage(response.data.message);
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setName("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    if (error.response && error.response.data && error.response.data.message) {
-      setFormError(error.response.data.message);
-    } else {
-      setFormError("An unexpected error occurred");
+    if (password !== confirmPassword) {
+      setFormError("Passwords do not match");
+      return;
     }
-  }
-};
 
+    try {
+      const response = await axios.post("http://localhost:5000/patient/signup", {
+        firstName,
+        lastName,
+        email,
+        username,   // send username
+        password,
+        confirmPassword,
+      });
+
+      setSuccessMessage(response.data.message);
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setUsername("");  // reset username
+      setPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        setFormError(error.response.data.message);
+      } else {
+        setFormError("An unexpected error occurred");
+      }
+    }
+  };
 
   const formVariants = {
     initial: { opacity: 0, y: 30 },
@@ -72,6 +76,7 @@ const SignUp = () => {
             Join us to book appointments with ease.
           </p>
 
+          {/* Error and Success Messages */}
           <AnimatePresence>
             {formError && (
               <motion.div
@@ -100,13 +105,25 @@ const SignUp = () => {
           </AnimatePresence>
 
           <div>
-            <label className="text-sm font-medium">Username</label>
+            <label className="text-sm font-medium">First Name</label>
             <input
-              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               type="text"
-              placeholder="John Doe"
-              onChange={(e) => setName(e.target.value)}
-              value={name}
+              placeholder="John"
+              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
+              onChange={(e) => setFirstName(e.target.value)}
+              value={firstName}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Last Name</label>
+            <input
+              type="text"
+              placeholder="Doe"
+              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
+              onChange={(e) => setLastName(e.target.value)}
+              value={lastName}
               required
             />
           </div>
@@ -114,9 +131,9 @@ const SignUp = () => {
           <div>
             <label className="text-sm font-medium">Email</label>
             <input
-              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               type="email"
               placeholder="you@example.com"
+              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               onChange={(e) => setEmail(e.target.value)}
               value={email}
               required
@@ -124,11 +141,23 @@ const SignUp = () => {
           </div>
 
           <div>
+            <label className="text-sm font-medium">Username</label>
+            <input
+              type="text"
+              placeholder="Choose a username"
+              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
+              onChange={(e) => setUsername(e.target.value)}
+              value={username}
+              required
+            />
+          </div>
+
+          <div>
             <label className="text-sm font-medium">Password</label>
             <input
-              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               type="password"
               placeholder="Enter your password"
+              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               onChange={(e) => setPassword(e.target.value)}
               value={password}
               required
@@ -138,9 +167,9 @@ const SignUp = () => {
           <div>
             <label className="text-sm font-medium">Confirm Password</label>
             <input
-              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               type="password"
               placeholder="Confirm your password"
+              className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all duration-300"
               onChange={(e) => setConfirmPassword(e.target.value)}
               value={confirmPassword}
               required
