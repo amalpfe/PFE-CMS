@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
-import DoctorLayout from "../components/DoctorLayout";
+import axios from "axios";
 import moment from "moment";
+import DoctorLayout from "../components/DoctorLayout";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faXmark, faCheck } from "@fortawesome/free-solid-svg-icons";
 
 type Appointment = {
   id: number;
@@ -41,10 +44,8 @@ const Appointments = () => {
 
     const fetchAppointments = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/doctor/${doctorId}/appointments/detailed`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-        setAppointments(data);
+        const res = await axios.get(`http://localhost:5000/doctor/${doctorId}/appointments/detailed`);
+        setAppointments(res.data);
       } catch (err) {
         setError("Failed to fetch appointments.");
         console.error(err);
@@ -56,7 +57,6 @@ const Appointments = () => {
     fetchAppointments();
   }, [doctorId]);
 
-  // Apply filters (date + search)
   useEffect(() => {
     let filtered = [...appointments];
 
@@ -80,8 +80,8 @@ const Appointments = () => {
   }, [searchTerm, appointments, filterType]);
 
   const statusColor = (status: string) => {
-    if (status === "Completed") return "text-green-600";
-    if (status === "Cancelled") return "text-red-500";
+    if (status === "Completed") return "text-grey-600";
+    if (status === "Cancelled") return "text-purple-800";
     return "text-gray-500";
   };
 
@@ -90,17 +90,7 @@ const Appointments = () => {
     if (!confirm) return;
 
     try {
-      const res = await fetch(
-        `http://localhost:5000/doctor/appointments/${appointmentId}/cancel`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to cancel appointment");
-
-      // Update status in the UI
+      await axios.put(`http://localhost:5000/doctor/appointments/${appointmentId}/cancel`);
       setAppointments((prev) =>
         prev.map((appt) =>
           appt.id === appointmentId ? { ...appt, status: "Cancelled" } : appt
@@ -109,6 +99,23 @@ const Appointments = () => {
     } catch (err) {
       console.error("Error cancelling appointment:", err);
       alert("Failed to cancel appointment. Try again.");
+    }
+  };
+
+  const handleComplete = async (appointmentId: number) => {
+    const confirm = window.confirm("Mark this appointment as completed?");
+    if (!confirm) return;
+
+    try {
+      await axios.put(`http://localhost:5000/doctor/appointments/${appointmentId}/complete`);
+      setAppointments((prev) =>
+        prev.map((appt) =>
+          appt.id === appointmentId ? { ...appt, status: "Completed" } : appt
+        )
+      );
+    } catch (err) {
+      console.error("Error completing appointment:", err);
+      alert("Failed to complete appointment. Try again.");
     }
   };
 
@@ -129,7 +136,6 @@ const Appointments = () => {
           />
         </div>
 
-        {/* Filters */}
         <div className="flex gap-3 mb-6">
           {["all", "today", "month"].map((type) => (
             <button
@@ -185,16 +191,25 @@ const Appointments = () => {
                       {appt.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    {appt.status !== "Cancelled" ? (
+                  <td className="py-3 px-4 flex gap-2">
+                    {appt.status !== "Cancelled" && (
                       <button
                         onClick={() => handleCancel(appt.id)}
-                        className="text-red-600 hover:underline text-sm"
+                        title="Cancel"
+                      className="text-purple-800 px-3 text-2xl hover:scale-110 transition"
+
                       >
-                        Cancel
+                        <FontAwesomeIcon icon={faXmark} />
                       </button>
-                    ) : (
-                      <span className="text-gray-400 text-sm">—</span>
+                    )}
+                    {appt.status === "Scheduled" && (
+                      <button
+                        onClick={() => handleComplete(appt.id)}
+                        title="Complete"
+                        className="text-grey-500 text-2xl hover:scale-110 transition"
+                      >
+                        <FontAwesomeIcon icon={faCheck} />
+                      </button>
                     )}
                   </td>
                 </tr>

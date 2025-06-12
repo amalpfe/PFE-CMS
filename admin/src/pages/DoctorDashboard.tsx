@@ -79,12 +79,14 @@ const Dashboard = () => {
     fetchAppointments();
   }, [doctorId]);
 
-   const handleSelectEvent = (event: Event) => {
-    const appointment = appointments.find((a) => a.id === event.id);
-    if (appointment) {
-      navigate(`/doctor/patient/${appointment.patientId}`);
-    }
-  };
+  // No changes needed in the navigation logic
+const handleSelectEvent = (event: Event) => {
+  const appointment = appointments.find((a) => a.id === event.id);
+  if (appointment) {
+    navigate(`/doctor/patient/${appointment.patientId}`);
+  }
+};
+
 
   if (!doctorId) return <p>Please login to see dashboard data.</p>;
 

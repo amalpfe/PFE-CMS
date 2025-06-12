@@ -39,6 +39,8 @@ router.get('/:id/appointments/detailed', DoctorController.getAppointmentsByDocto
 // Route to get basic appointments for a specific doctor
 router.get("/:id/appointments", DoctorController.getDoctorAppointments);
 router.put('/appointments/:appointmentId/cancel', DoctorController.cancelAppointment);
+router.put('/appointments/:appointmentId/complete', DoctorController.completeAppointment);
+
 
 // Fetch doctor profile by doctorId
 router.get('/profile/:id', DoctorController.getProfile);

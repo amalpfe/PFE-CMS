@@ -4,14 +4,13 @@ import axios from "axios";
 import { FaStar } from "react-icons/fa";
 
 interface RouteParams {
-  appointmentId: number;
+  appointmentId: number;  // params from URL are strings
   patientId: number;
   doctorName: string;
 }
 
 function Review() {
-const { appointmentId, patientId, doctorName } = useParams() as unknown as RouteParams;
-
+  const { appointmentId, patientId, doctorName } = useParams<RouteParams>();
 
   const navigate = useNavigate();
 
@@ -28,22 +27,20 @@ const { appointmentId, patientId, doctorName } = useParams() as unknown as Route
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/patient/add", {
-        appointmentId,
-        patientId,
+      const response = await axios.post("http://localhost:5000/patient/review", {
+        appointmentId: Number(appointmentId), // convert to number
+        patientId: Number(patientId),         // convert to number
         rating,
-        comment,
+        comment,                             // send comment to match backend
       });
 
       if (response.status === 201) {
         setSubmitted(true);
         setError("");
-        // Optional: redirect after submission
         setTimeout(() => {
-          navigate("/"); // or wherever you want after submission
+          navigate("/"); // redirect after 3 seconds or change route as needed
         }, 3000);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(
         err.response?.data?.message || "Failed to submit review. Try again."

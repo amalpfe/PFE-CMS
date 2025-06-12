@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import Banner from "../components/Banner";
 import Header from "../components/Header";
 import Speciality from "../components/Speciality";
-import TopDoctors from "../components/TopDoctors";
+// import TopDoctors from "../components/TopDoctors";
 
 // Section animation variant
 const fadeInUp = {

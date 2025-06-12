@@ -13,7 +13,9 @@ interface Appointment {
   age?: number;
   fees?: string;
   notes?: string;
+  patientImage?: string; // 👈 أضفنا هيدا
 }
+
 
 const AppointmentCalendar = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -144,11 +146,12 @@ const AppointmentCalendar = () => {
                   <tr key={appt.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">{index + 1}</td>
                     <td className="py-3 px-4 flex items-center gap-2">
-                      <img
-                        src="https://via.placeholder.com/32"
-                        alt="avatar"
-                        className="w-8 h-8 rounded-full"
-                      />
+                  <img
+  src={appt.patientImage || "https://via.placeholder.com/32"}
+  alt="avatar"
+  className="w-8 h-8 rounded-full object-cover"
+/>
+
                       {appt.patientName}
                     </td>
                     <td className="py-3 px-4">{appt.doctorName}</td>

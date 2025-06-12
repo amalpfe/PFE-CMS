@@ -9,7 +9,7 @@ router.post('/signup', Controller.handleSignup);
 router.post('/contact', Controller.contactUs);
 router.post('/appointment', Controller.handleApp);
 router.post('/login', Controller.handleLogin);
-router.post("/add", Controller.addReview);
+router.post("/review", Controller.addReview);
 router.post("/feedback", Controller.submitFeedback);
 
 router.get('/doctors', Controller.getAllDoctors);
