@@ -1,5 +1,6 @@
+// types/react-big-calendar.d.ts
 declare module 'react-big-calendar' {
-  import { ComponentType } from 'react';
+  import { ComponentType, CSSProperties } from 'react';
 
   export interface Event {
     title: string;
@@ -8,9 +9,13 @@ declare module 'react-big-calendar' {
     end: Date;
     [key: string]: any;
   }
-    interface CalendarProps<Event = object> {
-    min?: Date;
-    max?: Date;
+
+  export interface EventProps<TEvent extends object = Event> {
+    event: TEvent;
+    title: string;
+    isAllDay: boolean;
+    continuesPrior: boolean;
+    continuesAfter: boolean;
   }
 
   export interface CalendarProps<TEvent extends object = Event> {
@@ -19,18 +24,27 @@ declare module 'react-big-calendar' {
     endAccessor: keyof TEvent | ((event: TEvent) => Date);
     titleAccessor?: keyof TEvent | ((event: TEvent) => string);
     allDayAccessor?: keyof TEvent | ((event: TEvent) => boolean);
-    eventPropGetter?: (event: TEvent, start: Date, end: Date, selected: boolean) => {
+    eventPropGetter?: (
+      event: TEvent,
+      start: Date,
+      end: Date,
+      selected: boolean
+    ) => {
       className?: string;
-      style?: React.CSSProperties;
+      style?: CSSProperties;
     };
     onSelectEvent?: (event: TEvent) => void;
+    localizer: any;
+    style?: CSSProperties;
     views?: string[] | { [view: string]: boolean };
     defaultView?: string;
-    localizer: any;
-    style?: React.CSSProperties;
+    components?: {
+      event?: ComponentType<EventProps<TEvent>>;
+    };
   }
 
   export const Calendar: ComponentType<CalendarProps>;
+  export const momentLocalizer: (moment: any) => any;
   export const dateFnsLocalizer: (params: {
     format: any;
     parse: any;

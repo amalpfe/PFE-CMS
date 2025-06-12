@@ -191,8 +191,7 @@ const query = `
 
 
 // PUT /doctor/:id/profile
-const fs = require('fs');
-const path = require('path');
+
 
 exports.updateProfile = async (req, res) => {
   const id = req.params.id;
@@ -206,44 +205,15 @@ exports.updateProfile = async (req, res) => {
     degree,
     fees,
     experience,
-    about,
-    image, // base64 string
+    about
   } = req.body;
 
+  let imagePath = null;
+  if (req.file) {
+    imagePath = `/uploads/${req.file.filename}`;
+  }
+
   try {
-    let imagePath = null;
-
-    if (image && image.startsWith('data:image')) {
-      // Example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
-
-      // Extract base64 data
-      const matches = image.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
-      if (!matches) {
-        return res.status(400).json({ message: 'Invalid image format' });
-      }
-
-      const ext = matches[1]; // e.g. png, jpeg
-      const base64Data = matches[2];
-      const buffer = Buffer.from(base64Data, 'base64');
-
-      // Create uploads folder if not exists
-      const uploadsDir = path.join(__dirname, '..', 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir);
-      }
-
-      // Define filename (you can customize name)
-      const filename = `doctor-${id}.${ext}`;
-      const filepath = path.join(uploadsDir, filename);
-
-      // Save file
-      fs.writeFileSync(filepath, buffer);
-
-      // Set path to store in DB (relative or URL)
-      imagePath = `/uploads/${filename}`;
-    }
-
-    // SQL to update doctor profile
     const sql = `
       UPDATE doctor SET
         firstName = ?,
@@ -256,7 +226,7 @@ exports.updateProfile = async (req, res) => {
         fees = ?,
         experience = ?,
         about = ?,
-        image = COALESCE(?, image)  -- only update if new image is uploaded
+        image = COALESCE(?, image)
       WHERE id = ?
     `;
 
@@ -272,7 +242,7 @@ exports.updateProfile = async (req, res) => {
       experience,
       about,
       imagePath,
-      id,
+      id
     ];
 
     const [result] = await db.query(sql, values);
@@ -287,7 +257,6 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 /////////////new/////////////
 
 // const jwt = require('jsonwebtoken');
@@ -498,6 +467,75 @@ exports.cancelAppointment = async (req, res) => {
   } catch (error) {
     console.error('Error cancelling appointment:', error);
     res.status(500).json({ message: 'Server error cancelling appointment' });
+  }
+};
+
+exports.getPatientById = async (req, res) => {
+  const patientId = parseInt(req.params.patientId, 10);
+
+  if (isNaN(patientId) || patientId <= 0) {
+    return res.status(400).json({ error: "Invalid patient ID" });
+  }
+
+  try {
+    const [rows] = await db.query('SELECT * FROM patient WHERE id = ?', [patientId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+
+    return res.json(rows[0]);
+  } catch (error) {
+    console.error("Error fetching patient:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.addMedicalRecord = async (req, res) => {
+  const {
+    patientId,
+    doctorId,
+    diagnosis,
+    treatment,
+    prescription,
+    recordDate,
+  } = req.body;
+
+  // Basic validation
+  if (
+    !patientId ||
+    isNaN(parseInt(patientId, 10)) ||
+    !doctorId ||
+    isNaN(parseInt(doctorId, 10)) ||
+    !diagnosis ||
+    !treatment ||
+    !recordDate
+  ) {
+    return res.status(400).json({ error: "Missing or invalid required fields." });
+  }
+
+  try {
+    const sql = `
+      INSERT INTO medicalrecord (patientId, doctorId, diagnosis, treatment, prescription, recordDate)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    const [result] = await db.query(sql, [
+      patientId,
+      doctorId,
+      diagnosis,
+      treatment,
+      prescription || null,
+      recordDate,
+    ]);
+
+    return res.status(201).json({
+      message: "Medical record added successfully.",
+      recordId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error adding medical record:", error);
+    return res.status(500).json({ error: "Internal server error." });
   }
 };
 

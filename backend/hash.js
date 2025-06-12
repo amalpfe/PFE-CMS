@@ -1,11 +1,12 @@
-// hash.js
-const bcrypt = require("bcrypt");
+const bcrypt = require('bcrypt');
 
-const plainPassword = "admin123"; // 👈 Your chosen admin password
+const plainPassword = 'ghadeer'; // replace with any password you want
+const saltRounds = 10;
 
-bcrypt.hash(plainPassword, 10).then((hash) => {
-  console.log("Hashed password:", hash);
+bcrypt.hash(plainPassword, saltRounds, (err, hash) => {
+  if (err) {
+    console.error("Error hashing password:", err);
+  } else {
+    console.log("Hashed password:", hash);
+  }
 });
-// bcrypt.hash('test123', 10).then(hash => {
-//   console.log(hash);
-// });

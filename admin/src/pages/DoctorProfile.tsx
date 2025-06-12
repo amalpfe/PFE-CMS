@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import DoctorLayout from "../components/DoctorLayout";
+import { useState, useEffect, type ChangeEvent } from "react";
 import axios from "axios";
+import DoctorLayout from "../components/DoctorLayout";
 
 interface Doctor {
   id: number;
@@ -22,15 +22,19 @@ const DoctorProfile = () => {
 
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [formData, setFormData] = useState<Doctor | null>(null);
-  const [editMode, setEditMode] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    if (!doctorId) return;
+
+    const fetchDoctorProfile = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/doctor/profile/${doctorId}`);
-        setDoctor(res.data);
-        setFormData(res.data);
+        const response = await axios.get<Doctor>(
+          `http://localhost:5000/doctor/profile/${doctorId}`
+        );
+        setDoctor(response.data);
+        setFormData(response.data);
       } catch (error) {
         console.error("Error fetching doctor profile:", error);
       } finally {
@@ -38,46 +42,81 @@ const DoctorProfile = () => {
       }
     };
 
-    if (doctorId) fetchProfile();
+    fetchDoctorProfile();
   }, [doctorId]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type } = e.target;
-
-    setFormData((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-      };
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => (prev ? { ...prev, [name]: value } : null));
   };
 
-  const handleSave = async () => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !doctorId) return;
+
+    const formDataUpload = new FormData();
+    formDataUpload.append("image", file);
+
     try {
-      await axios.put(`http://localhost:5000/doctor/profile/${doctorId}`, formData);
-      setDoctor(formData);
-      setEditMode(false);
-      alert("Profile updated successfully.");
+      const response = await axios.put(
+        `http://localhost:5000/doctor/profile/${doctorId}`,
+        formDataUpload,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const imagePath = response.data.image;
+      setFormData((prev) => (prev ? { ...prev, image: imagePath } : null));
     } catch (error) {
-      console.error("Error updating profile:", error);
-      alert("Failed to update profile. Try again.");
+      console.error("Image upload failed:", error);
+      alert("Failed to upload image");
     }
   };
 
-  const handleCancel = () => {
+  const saveProfile = async () => {
+    if (!doctorId || !formData) return;
+
+    try {
+      await axios.put(
+        `http://localhost:5000/doctor/profile/${doctorId}`,
+        formData
+      );
+      setDoctor(formData);
+      setIsEditing(false);
+      alert("Profile updated successfully.");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile. Please try again.");
+    }
+  };
+
+  const cancelEdit = () => {
     setFormData(doctor);
-    setEditMode(false);
+    setIsEditing(false);
   };
 
   if (!doctorId) {
-    return <div className="text-center p-4 text-red-600">Unauthorized access</div>;
+    return (
+      <div className="text-center p-4 text-red-600">Unauthorized access</div>
+    );
   }
 
-  if (loading) return <div className="text-center p-4">Loading...</div>;
-  if (!doctor) return <div className="text-center p-4 text-red-500">Doctor profile not found</div>;
+  if (loading) {
+    return <div className="text-center p-4">Loading...</div>;
+  }
+
+  if (!doctor) {
+    return (
+      <div className="text-center p-4 text-red-500">
+        Doctor profile not found
+      </div>
+    );
+  }
 
   return (
     <DoctorLayout>
@@ -85,37 +124,43 @@ const DoctorProfile = () => {
         <div className="flex flex-col items-center">
           <img
             src={formData?.image || "/doctor-profile-image.jpg"}
-            alt="Doctor"
+            alt={`${formData?.firstName} ${formData?.lastName}`}
             className="w-44 h-56 object-cover rounded mb-4"
           />
 
-          {editMode ? (
+          {isEditing ? (
             <>
               <input
                 name="firstName"
                 value={formData?.firstName || ""}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="text-xl font-semibold text-center border-b border-gray-300 mb-2"
                 placeholder="First Name"
               />
               <input
                 name="lastName"
                 value={formData?.lastName || ""}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="text-xl font-semibold text-center border-b border-gray-300 mb-2"
                 placeholder="Last Name"
               />
               <input
                 name="specialty"
                 value={formData?.specialty || ""}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="text-gray-600 text-sm text-center border-b border-gray-300 mb-4"
                 placeholder="Specialty"
               />
 
               <div className="w-full mb-4">
-                <label className="block font-semibold mb-1">Upload New Image:</label>
-                <input type="file" accept="image/*" onChange={handleImageUpload} />
+                <label className="block font-semibold mb-1">
+                  Upload New Image:
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
                 {formData?.image && (
                   <img
                     src={formData.image}
@@ -132,19 +177,21 @@ const DoctorProfile = () => {
               </h1>
               <p className="text-gray-600 text-sm">
                 {doctor.degree} - {doctor.specialty}
-                <span className="ml-2 text-xs text-gray-500">({doctor.experience})</span>
+                <span className="ml-2 text-xs text-gray-500">
+                  ({doctor.experience})
+                </span>
               </p>
             </>
           )}
         </div>
 
         <div className="mt-6 text-gray-700 space-y-4">
-          {editMode ? (
+          {isEditing ? (
             <>
               <textarea
                 name="about"
                 value={formData?.about || ""}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 rows={4}
                 className="w-full border rounded p-2"
                 placeholder="Bio"
@@ -152,14 +199,14 @@ const DoctorProfile = () => {
               <input
                 name="fees"
                 value={formData?.fees || ""}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="w-full border rounded p-2"
                 placeholder="Appointment Fee"
               />
               <input
                 name="address"
                 value={formData?.address || ""}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="w-full border rounded p-2"
                 placeholder="Address"
               />
@@ -171,7 +218,8 @@ const DoctorProfile = () => {
                 {doctor.about}
               </p>
               <p>
-                <span className="font-semibold">Appointment Fee:</span> {doctor.fees}
+                <span className="font-semibold">Appointment Fee:</span>{" "}
+                {doctor.fees}
               </p>
               <p>
                 <span className="font-semibold">Address:</span> {doctor.address}
@@ -181,16 +229,16 @@ const DoctorProfile = () => {
         </div>
 
         <div className="mt-6 text-center space-x-3">
-          {editMode ? (
+          {isEditing ? (
             <>
               <button
-                onClick={handleSave}
+                onClick={saveProfile}
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
               >
                 Save
               </button>
               <button
-                onClick={handleCancel}
+                onClick={cancelEdit}
                 className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
               >
                 Cancel
@@ -198,7 +246,7 @@ const DoctorProfile = () => {
             </>
           ) : (
             <button
-              onClick={() => setEditMode(true)}
+              onClick={() => setIsEditing(true)}
               className="bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200"
             >
               Edit Profile

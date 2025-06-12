@@ -82,7 +82,7 @@ const Dashboard = () => {
    const handleSelectEvent = (event: Event) => {
     const appointment = appointments.find((a) => a.id === event.id);
     if (appointment) {
-      navigate(`/doctor/patients/${appointment.patientId}`);
+      navigate(`/doctor/patient/${appointment.patientId}`);
     }
   };
 

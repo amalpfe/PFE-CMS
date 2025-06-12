@@ -2,6 +2,25 @@ const express = require('express');
 const { verifyToken } = require('../middlewares/auth');
 
 const DoctorController = require('../controllers/DoctorControllers');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir);
+    }
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `doctor-${req.params.id}${ext}`);
+  }
+});
+
+const upload = multer({ storage });
 
 const router = express.Router();
 //new
@@ -25,9 +44,10 @@ router.put('/appointments/:appointmentId/cancel', DoctorController.cancelAppoint
 router.get('/profile/:id', DoctorController.getProfile);
 
 // Update doctor profile by doctorId
-router.put('/profile/:id', DoctorController.updateProfile);
+router.put('/profile/:id', upload.single('image'), DoctorController.updateProfile);
 router.post('/login', DoctorController.loginDoctor);
 router.get('/patients/:doctorId', DoctorController.getPatientsByDoctorAppointments);
-
-
+router.get('/patient/:patientId', DoctorController.getPatientById);
+// Route to add a new medical record (POST)
+router.post('/medical-record', DoctorController.addMedicalRecord);
 module.exports = router;
