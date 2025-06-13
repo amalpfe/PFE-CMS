@@ -42,6 +42,7 @@ const Login = () => {
       } else {
         localStorage.setItem("user", JSON.stringify(doctor)); // optional
         localStorage.setItem("doctor", JSON.stringify(doctor)); // ✅ هذا المهم
+        localStorage.setItem("doctorId", doctor.id.toString()); // ✅ This fixes your issue
         navigate("/doctor/dashboard");
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
