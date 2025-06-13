@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 import homeIcon from "../assets/home_icon.svg";
 import appointmentIcon from "../assets/appointment_icon.svg";
 import profileIcon from "../assets/people_icon.svg"; // Reusing people icon for Profile
-import peopleIcon from "../assets/people_icon.svg";
 
 // Props type definition
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -26,8 +25,10 @@ const DoctorSidebar = () => {
           <img src={appointmentIcon} alt="Appointments" className="w-6 h-6 mr-4" />
           Appointments
         </Link>
-
-      
+        <Link to="/doctor/patients" className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+          <img src={profileIcon} alt="Profile" className="w-6 h-6 mr-4" />
+          Patient List
+        </Link>
 
         <Link to="/doctor/profile" className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
           <img src={profileIcon} alt="Profile" className="w-6 h-6 mr-4" />

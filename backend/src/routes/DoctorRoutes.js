@@ -51,5 +51,7 @@ router.post('/login', DoctorController.loginDoctor);
 router.get('/patients/:doctorId', DoctorController.getPatientsByDoctorAppointments);
 router.get('/patient/:patientId', DoctorController.getPatientById);
 // Route to add a new medical record (POST)
-router.post('/medical-record', DoctorController.addMedicalRecord);
+router.post('/:id/medical-record', DoctorController.addMedicalRecord);
+router.get('/patient/:id/medical-records', DoctorController.getMedicalRecordsByPatient);
+
 module.exports = router;

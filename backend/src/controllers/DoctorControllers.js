@@ -551,9 +551,10 @@ exports.getPatientById = async (req, res) => {
 };
 
 exports.addMedicalRecord = async (req, res) => {
+  const doctorId = req.params.id; // get doctorId from URL param
+
   const {
     patientId,
-    doctorId,
     diagnosis,
     treatment,
     prescription,
@@ -598,3 +599,19 @@ exports.addMedicalRecord = async (req, res) => {
   }
 };
 
+exports.getMedicalRecordsByPatient = async (req, res) => {
+  const patientId = req.params.id;
+
+  if (!patientId || isNaN(parseInt(patientId, 10))) {
+    return res.status(400).json({ error: 'Invalid patient id' });
+  }
+
+  try {
+    const sql = 'SELECT * FROM medicalrecord WHERE patientId = ? ORDER BY recordDate DESC';
+    const [records] = await db.query(sql, [patientId]);
+    return res.json(records);
+  } catch (error) {
+    console.error('Error fetching medical records:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
