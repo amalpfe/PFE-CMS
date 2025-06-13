@@ -18,11 +18,12 @@ interface Appointment {
 }
 
 interface Booking {
-  id: number;
+  id?: number;
+  patientId: number;
   name: string;
+  image?: string | null;
   date: string;
   status: string;
-  patientId: number;
 }
 
 interface Stats {
@@ -154,14 +155,22 @@ const Dashboard = () => {
                 ) : (
                   bookings.slice(0, 5).map((booking) => (
                     <div 
-                      key={booking.id} 
+                      key={booking.patientId} 
                       className="flex justify-between items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
                       onClick={() => booking.patientId && navigate(`/doctor/patient/${booking.patientId}`)}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center">
-                          {booking.name.charAt(0)}
-                        </div>
+                        {booking.image ? (
+                          <img
+                            src={booking.image}
+                            alt={booking.name}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                            {booking.name.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium">{booking.name}</p>
                           <p className="text-sm text-gray-500">

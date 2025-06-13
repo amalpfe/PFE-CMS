@@ -1,13 +1,18 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import moment from "moment";
+import { Table, Button, Input, Select, Tag, Space } from "antd";
 import DoctorLayout from "../components/DoctorLayout";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faXmark, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { SearchOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
+
+const { Option } = Select;
 
 type Appointment = {
   id: number;
   patient: string;
+  image?: string;
   payment?: string;
   age: number;
   datetime: string;
@@ -16,7 +21,7 @@ type Appointment = {
   notes?: string;
 };
 
-const Appointments = () => {
+export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,13 +66,9 @@ const Appointments = () => {
     let filtered = [...appointments];
 
     if (filterType === "today") {
-      filtered = filtered.filter((appt) =>
-        moment(appt.datetime).isSame(moment(), "day")
-      );
+      filtered = filtered.filter((appt) => moment(appt.datetime).isSame(moment(), "day"));
     } else if (filterType === "month") {
-      filtered = filtered.filter((appt) =>
-        moment(appt.datetime).isSame(moment(), "month")
-      );
+      filtered = filtered.filter((appt) => moment(appt.datetime).isSame(moment(), "month"));
     }
 
     if (searchTerm) {
@@ -79,10 +80,10 @@ const Appointments = () => {
     setFilteredAppointments(filtered);
   }, [searchTerm, appointments, filterType]);
 
-  const statusColor = (status: string) => {
-    if (status === "Completed") return "text-grey-600";
-    if (status === "Cancelled") return "text-purple-800";
-    return "text-gray-500";
+  const statusTag = (status: string) => {
+    if (status === "Completed") return <Tag color="green">Completed</Tag>;
+    if (status === "Cancelled") return <Tag color="red">Cancelled</Tag>;
+    return <Tag color="blue">{status}</Tag>;
   };
 
   const handleCancel = async (appointmentId: number) => {
@@ -119,114 +120,118 @@ const Appointments = () => {
     }
   };
 
-  if (loading) return <p>Loading appointments...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
+  const columns = [
+    {
+      title: "#",
+      key: "index",
+      render: (_: any, __: any, index: number) => index + 1,
+    },
+    {
+      title: "Patient",
+      key: "patient",
+      dataIndex: "patient",
+      render: (_: any, record: Appointment) => (
+        <div className="flex items-center gap-2">
+          <img
+            src={record.image || "/default-profile.png"}
+            alt="avatar"
+            className="w-8 h-8 rounded-full object-cover border"
+          />
+          <span>{record.patient}</span>
+        </div>
+      ),
+    },
+    {
+      title: "Payment",
+      key: "payment",
+      dataIndex: "payment",
+      render: (payment: string) =>
+        payment ? (
+          <Tag color="purple">{payment}</Tag>
+        ) : (
+          <Tag color="default">N/A</Tag>
+        ),
+    },
+    {
+      title: "Age",
+      key: "age",
+      dataIndex: "age",
+    },
+    {
+      title: "Date & Time",
+      key: "datetime",
+      dataIndex: "datetime",
+      render: (datetime: string) => moment(datetime).format("YYYY-MM-DD hh:mm A"),
+    },
+    {
+      title: "Fees",
+      key: "fees",
+      dataIndex: "fees",
+    },
+    {
+      title: "Status",
+      key: "status",
+      dataIndex: "status",
+      render: (status: string) => statusTag(status),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_: any, record: Appointment) => (
+        <Space>
+          {record.status !== "Cancelled" && (
+            <Button
+              danger
+              icon={<CloseOutlined />}
+              onClick={() => handleCancel(record.id)}
+            />
+          )}
+          {record.status === "Scheduled" && (
+            <Button
+              type="primary"
+              icon={<CheckOutlined />}
+              onClick={() => handleComplete(record.id)}
+            />
+          )}
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <DoctorLayout>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-xl font-semibold text-purple-700">All Appointments</h1>
-          <input
-            type="text"
-            placeholder="Search by patient name..."
+      <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+        <h1 className="text-3xl font-bold mb-6">Appointments</h1>
+
+        {error && <p className="text-red-600">{error}</p>}
+
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Input
+            placeholder="Search by patient name"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border border-purple-400 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full md:w-1/3"
           />
+
+          <Select
+            value={filterType}
+            onChange={(val) => setFilterType(val)}
+            className="w-full md:w-1/4"
+          >
+            <Option value="all">All</Option>
+            <Option value="today">Today</Option>
+            <Option value="month">This Month</Option>
+          </Select>
         </div>
 
-        <div className="flex gap-3 mb-6">
-          {["all", "today", "month"].map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilterType(type as any)}
-              className={`px-4 py-2 rounded-md text-sm border ${
-                filterType === type
-                  ? "bg-purple-600 text-white"
-                  : "bg-white text-purple-600 border-purple-600"
-              }`}
-            >
-              {type === "all" ? "All" : type === "today" ? "Today" : "This Month"}
-            </button>
-          ))}
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full table-auto text-sm text-left">
-            <thead>
-              <tr className="text-gray-600 border-b">
-                <th className="py-3 px-4 font-medium">#</th>
-                <th className="py-3 px-4 font-medium">Patient</th>
-                <th className="py-3 px-4 font-medium">Payment</th>
-                <th className="py-3 px-4 font-medium">Age</th>
-                <th className="py-3 px-4 font-medium">Date & Time</th>
-                <th className="py-3 px-4 font-medium">Fees</th>
-                <th className="py-3 px-4 font-medium">Status</th>
-                <th className="py-3 px-4 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAppointments.map((appt, index) => (
-                <tr key={appt.id} className="border-b hover:bg-gray-50">
-                  <td className="py-3 px-4">{index + 1}</td>
-                  <td className="py-3 px-4 flex items-center gap-2">
-                    <img
-                      src="https://via.placeholder.com/32"
-                      alt="avatar"
-                      className="w-8 h-8 rounded-full"
-                    />
-                    {appt.patient}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="border px-2 py-1 rounded-full text-xs">
-                      {appt.payment || "N/A"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">{appt.age}</td>
-                  <td className="py-3 px-4">{appt.datetime}</td>
-                  <td className="py-3 px-4">{appt.fees}</td>
-                  <td className="py-3 px-4">
-                    <span className={`font-medium ${statusColor(appt.status)}`}>
-                      {appt.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 flex gap-2">
-                    {appt.status !== "Cancelled" && (
-                      <button
-                        onClick={() => handleCancel(appt.id)}
-                        title="Cancel"
-                      className="text-purple-800 px-3 text-2xl hover:scale-110 transition"
-
-                      >
-                        <FontAwesomeIcon icon={faXmark} />
-                      </button>
-                    )}
-                    {appt.status === "Scheduled" && (
-                      <button
-                        onClick={() => handleComplete(appt.id)}
-                        title="Complete"
-                        className="text-grey-500 text-2xl hover:scale-110 transition"
-                      >
-                        <FontAwesomeIcon icon={faCheck} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filteredAppointments.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-4 text-gray-500">
-                    No appointments found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={columns}
+          dataSource={filteredAppointments}
+          loading={loading}
+          pagination={{ pageSize: 6 }}
+          rowKey="id"
+        />
       </div>
     </DoctorLayout>
   );
-};
-
-export default Appointments;
+}

@@ -29,7 +29,7 @@ exports.getDoctorDashboard = async (req, res) => {
       WHERE doctorId = ?`,
 
     bookings: `
-      SELECT p.firstName, p.lastName, a.appointmentDate, a.appointmentStatus 
+      SELECT p.id AS patientId, p.firstName, p.lastName, p.image, a.appointmentDate, a.appointmentStatus 
       FROM Appointment a 
       JOIN Patient p ON a.patientId = p.id 
       WHERE a.doctorId = ? 
@@ -48,8 +48,10 @@ exports.getDoctorDashboard = async (req, res) => {
       appointments: apptResult.totalAppointments,
       patients: patientResult.totalPatients,
       bookings: bookingResult.map(b => ({
+        patientId: b.patientId,
         name: `${b.firstName} ${b.lastName}`,
-        date: new Date(b.appointmentDate).toLocaleDateString(),
+        image: b.image,
+        date: new Date(b.appointmentDate).toISOString(),
         status: b.appointmentStatus
       }))
     };
@@ -60,6 +62,7 @@ exports.getDoctorDashboard = async (req, res) => {
     return res.status(500).json({ error: "Database error", details: err });
   }
 };
+
 
 
 // controllers/doctorController.js
@@ -73,7 +76,9 @@ exports.getPatientsByDoctorAppointments = async (req, res) => {
 
   try {
     const [rows] = await db.query(`
-      SELECT DISTINCT p.*
+      SELECT DISTINCT p.id, p.firstName, p.lastName, p.dateOfBirth, p.gender, p.phoneNumber,
+                      p.email, p.address, p.emergencyContactName, p.emergencyContactPhone,
+                      p.createdAt, p.updatedAt, p.image
       FROM appointment a
       JOIN patient p ON a.patientId = p.id
       WHERE a.doctorId = ?
@@ -125,25 +130,25 @@ exports.getDoctorAppointments = async (req, res) => {
 
 
 
-exports. getAppointmentsByDoctor = async (req, res) => {
+exports.getAppointmentsByDoctor = async (req, res) => {
   const doctorId = req.params.id;
 
-const query = `
-  SELECT 
-    a.id AS appointmentId,
-    CONCAT(p.firstName, ' ', p.lastName) AS patient,
-    TIMESTAMPDIFF(YEAR, p.dateOfBirth, CURDATE()) AS age,
-    a.appointmentDate,
-    d.fees,
-    a.appointmentStatus AS status,
-    a.notes
-  FROM appointment a    -- <--- change here from appointments to appointment
-  JOIN patient p ON a.patientId = p.id
-  JOIN doctor d ON a.doctorId = d.id
-  WHERE a.doctorId = ?
-  ORDER BY a.appointmentDate DESC
-`;
-
+  const query = `
+    SELECT 
+      a.id AS appointmentId,
+      CONCAT(p.firstName, ' ', p.lastName) AS patient,
+      p.image AS patientImage,
+      TIMESTAMPDIFF(YEAR, p.dateOfBirth, CURDATE()) AS age,
+      a.appointmentDate,
+      d.fees,
+      a.appointmentStatus AS status,
+      a.notes
+    FROM appointment a
+    JOIN patient p ON a.patientId = p.id
+    JOIN doctor d ON a.doctorId = d.id
+    WHERE a.doctorId = ?
+    ORDER BY a.appointmentDate DESC
+  `;
 
   try {
     const [rows] = await db.execute(query, [doctorId]);
@@ -151,6 +156,7 @@ const query = `
     const formatted = rows.map((row) => ({
       id: row.appointmentId,
       patient: row.patient,
+      image: row.patientImage, // base64 image
       age: row.age,
       datetime: new Date(row.appointmentDate).toLocaleString(),
       fees: `$${row.fees}`,
@@ -164,6 +170,7 @@ const query = `
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 
 // GET /doctor/:id/profile

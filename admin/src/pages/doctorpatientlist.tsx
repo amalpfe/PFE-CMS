@@ -19,6 +19,7 @@ interface Patient {
   emergencyContactPhone?: string | null;
   createdAt: string;
   updatedAt: string;
+  image?: string | null;  // Added
 }
 
 export default function DoctorPatientsPage() {
@@ -26,11 +27,20 @@ export default function DoctorPatientsPage() {
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
- const navigate = useNavigate(); 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/doctor/patients/24");
+        const doctor = JSON.parse(localStorage.getItem("doctor") || "{}");
+        const doctorId = doctor?.id;
+
+        if (!doctorId) {
+          console.error("Doctor ID not found in localStorage.");
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/doctor/patients/${doctorId}`);
         setPatients(response.data);
         setFilteredPatients(response.data);
       } catch (error) {
@@ -41,8 +51,7 @@ export default function DoctorPatientsPage() {
     fetchPatients();
   }, []);
 
-  const getFullName = (patient: Patient) =>
-    `${patient.firstName} ${patient.lastName}`;
+  const getFullName = (patient: Patient) => `${patient.firstName} ${patient.lastName}`;
 
   const getAge = (dob: string) => {
     const birthDate = new Date(dob);
@@ -75,11 +84,19 @@ export default function DoctorPatientsPage() {
       key: "patient",
       render: (_: any, record: Patient) => (
         <div className="flex items-center">
-          <img
-            src="/default-profile.png"
-            alt={getFullName(record)}
-            className="w-10 h-10 rounded-full mr-2 object-cover"
-          />
+          {record.image ? (
+            <img
+              src={record.image}
+              alt={getFullName(record)}
+              className="w-10 h-10 rounded-full mr-2 object-cover"
+            />
+          ) : (
+            <img
+              src="/default-profile.png"
+              alt={getFullName(record)}
+              className="w-10 h-10 rounded-full mr-2 object-cover"
+            />
+          )}
           <span>{getFullName(record)}</span>
         </div>
       ),
