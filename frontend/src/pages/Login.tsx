@@ -26,14 +26,22 @@ const onSubmitHandler = async (e: FormEvent) => {
 
     const { user, token } = response.data;
 
-    // Save user and token in global state or localStorage
+    // Save user and token in global state
     setUser(user);
     setToken(token);
-    
+
+    // Save token and user (with image) in localStorage for persistence
+    localStorage.setItem("token", token);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        ...user,
+        image: user.image, // Make sure image is saved properly
+      })
+    );
 
     // Redirect to home or dashboard after login
     window.location.href = "/";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     if (error.response?.data?.message) {
       setFormError(error.response.data.message);

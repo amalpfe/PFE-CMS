@@ -13,10 +13,10 @@ exports.getDoctorDashboard = async (req, res) => {
 
   const queries = {
     earnings: `
-      SELECT SUM(b.amount) AS totalEarnings 
-      FROM Billing b 
-      JOIN Appointment a ON b.appointmentId = a.id 
-      WHERE a.doctorId = ? AND b.paymentStatus = 'Paid'`,
+      SELECT COUNT(*) * d.fees AS totalEarnings
+      FROM Appointment a
+      JOIN doctor d ON a.doctorId = d.id
+      WHERE a.doctorId = ? AND a.appointmentStatus = 'Completed'`,
 
     appointments: `
       SELECT COUNT(*) AS totalAppointments 
@@ -60,6 +60,7 @@ exports.getDoctorDashboard = async (req, res) => {
     return res.status(500).json({ error: "Database error", details: err });
   }
 };
+
 
 // controllers/doctorController.js
 

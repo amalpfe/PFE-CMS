@@ -34,6 +34,7 @@ const AppointmentCalendar = () => {
         const response = await axios.get("http://localhost:5000/admin/recent-appointments");
 
         // تصليح id لو كان مش موجود
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fixedData = response.data.map((appt: any) => ({
           ...appt,
           id: appt.id ?? appt.appointmentId,
@@ -112,6 +113,7 @@ const AppointmentCalendar = () => {
           {["all", "today", "month"].map((type) => (
             <button
               key={type}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onClick={() => setFilterType(type as any)}
               className={`px-4 py-2 rounded-md text-sm border ${
                 filterType === type
