@@ -469,6 +469,64 @@ exports.cancelAppointment = async (req, res) => {
     res.status(500).json({ message: 'Server error cancelling appointment' });
   }
 };
+exports.completeAppointment = async (req, res) => {
+  const { appointmentId } = req.params;
+
+  try {
+    // 1. Get appointment info (including patientId, patient email, and doctor name)
+    const [result] = await db.query(`
+      SELECT a.patientId, a.appointmentDate, p.email AS patientEmail,
+             d.firstName AS doctorFirstName, d.lastName AS doctorLastName
+      FROM appointment a
+      JOIN doctor d ON a.doctorId = d.id
+      JOIN patient p ON a.patientId = p.id
+      WHERE a.id = ?
+    `, [appointmentId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    const { patientId, patientEmail, doctorFirstName, doctorLastName, appointmentDate } = result[0];
+
+    // 2. Update appointment status to "Completed"
+    await db.query(
+      'UPDATE appointment SET appointmentStatus = ? WHERE id = ?',
+      ['Completed', appointmentId]
+    );
+
+    // 3. Send notification to patient in database
+    const message = `Your appointment with Dr. ${doctorFirstName} ${doctorLastName} on ${appointmentDate} has been marked as completed.`;
+    await db.query(
+      'INSERT INTO notifications (patientId, message) VALUES (?, ?)',
+      [patientId, message]
+    );
+
+    // 4. Send email notification to patient
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"Aeternum" <${process.env.EMAIL_USER}>`,
+      to: patientEmail,
+      subject: "Appointment Completed",
+      text: `Dear Patient,\n\n${message}\n\nThank you for visiting us. We look forward to serving you again.\n\nBest regards,\nYour Clinic Team`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Appointment completed, notification sent, and email delivered' });
+  } catch (error) {
+    console.error('Error completing appointment:', error);
+    res.status(500).json({ message: 'Server error completing appointment' });
+  }
+};
+
 
 exports.getPatientById = async (req, res) => {
   const patientId = parseInt(req.params.patientId, 10);

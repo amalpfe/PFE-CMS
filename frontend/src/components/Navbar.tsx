@@ -3,35 +3,50 @@ import { useState, useEffect } from 'react';
 import logo from '../assets/logo2.png';
 import prof from '../assets/profilee_icon.png';
 import drop from '../assets/drop_icon.png';
-import bell from '../assets/bell-icon.png'; // ✅ Add your bell icon in assets
+import bell from '../assets/bell-icon.png';
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [token, setToken] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    const user = localStorage.getItem("user");
+    const savedToken = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
 
     setToken(!!savedToken);
 
     if (user) {
       try {
         const parsedUser = JSON.parse(user);
-        setUserId(parsedUser.id);
+        setUser(parsedUser);
+        setUserId(parsedUser.id || null);
       } catch (err) {
-        console.error("Error parsing user from localStorage:", err);
+        console.error('Error parsing user from localStorage:', err);
+        setUser(null);
+        setUserId(null);
       }
     }
   }, []);
 
+  const handleProtectedNav = (to: string, requiresAuth: boolean) => {
+    if (requiresAuth && !token) {
+      setErrorMessage('❗ Please login to access this page.');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } else {
+      navigate(to);
+    }
+  };
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(false);
+    setUserId(null);
     setShowLogoutModal(false);
     navigate('/login');
   };
@@ -39,7 +54,7 @@ function Navbar() {
   return (
     <>
       {/* Navbar */}
-      <div className="flex items-center justify-between px-6 py-2 bg-white shadow-sm rounded-xl mb-4 border border-gray-200">
+      <div className="flex items-center justify-between px-6 py-2 bg-white shadow-sm rounded-xl mb-4 border border-gray-200 relative">
         <img
           src={logo}
           alt="Logo"
@@ -57,15 +72,13 @@ function Navbar() {
             <li
               key={item.to}
               className="py-2 relative group cursor-pointer"
-              onClick={() => {
-                if (item.requiresAuth && !token) {
-                  alert('Please login to access this page.');
-                } else {
-                  navigate(item.to);
-                }
-              }}
+              onClick={() => handleProtectedNav(item.to, item.requiresAuth || false)}
             >
-              <span className={`${location.pathname === item.to ? 'text-purple-700' : ''}`}>
+              <span
+                className={`${
+                  location.pathname === item.to ? 'text-purple-700' : ''
+                }`}
+              >
                 {item.label}
               </span>
               <span
@@ -89,7 +102,7 @@ function Navbar() {
         <div className="flex items-center gap-4">
           {token ? (
             <>
-              {/* ✅ Notification Icon */}
+              {/* Notification Icon */}
               <div className="relative cursor-pointer">
                 <img
                   src={bell}
@@ -104,30 +117,46 @@ function Navbar() {
 
               {/* Profile Menu */}
               <div className="flex items-center gap-2 cursor-pointer group relative">
-                <img
-                  className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow"
-                  src={prof}
-                  alt="Profile"
-                />
+             <img
+  className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow object-cover"
+  src={
+    user?.image
+      ? user.image.startsWith('data:image') 
+        ? user.image 
+        : `data:image/jpeg;base64,${user.image}`
+      : prof
+  }
+  alt="Profile"
+/>
+
                 <img className="w-4" src={drop} alt="Dropdown icon" />
                 <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block">
                   <div className="min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4">
                     <p
                       onClick={() => {
-                        if (!userId) return navigate("/login");
+                        if (!userId) return navigate('/login');
                         navigate(`/my-profile/${userId}`);
                       }}
                       className="hover:text-black cursor-pointer"
                     >
                       My Profile
                     </p>
-                    <p onClick={() => navigate('/my-appointments')} className="hover:text-black cursor-pointer">
+                    <p
+                      onClick={() => navigate('/my-appointments')}
+                      className="hover:text-black cursor-pointer"
+                    >
                       My Appointment
                     </p>
-                    <p onClick={() => navigate('/medical-reports')} className="hover:text-black cursor-pointer">
+                    <p
+                      onClick={() => navigate('/medical-reports')}
+                      className="hover:text-black cursor-pointer"
+                    >
                       Medical Reports
                     </p>
-                    <p onClick={() => setShowLogoutModal(true)} className="hover:text-red-500 cursor-pointer">
+                    <p
+                      onClick={() => setShowLogoutModal(true)}
+                      className="hover:text-red-500 cursor-pointer"
+                    >
                       Logout
                     </p>
                   </div>
@@ -143,9 +172,16 @@ function Navbar() {
             </button>
           )}
         </div>
+
+        {/* Error Message Box */}
+        {errorMessage && (
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-red-100 text-red-600 px-4 py-2 rounded-md text-sm shadow-lg z-50">
+            {errorMessage}
+          </div>
+        )}
       </div>
 
-      {/* Logout Modal */}
+      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg text-center">

@@ -62,73 +62,83 @@ function Appointment() {
     if (docId) fetchDoctorDetails();
   }, [docId]);
 
-  useEffect(() => {
-    const fetchReservedSlots = async () => {
-      if (!docInfo?.id) return;
-      try {
-        const res = await axios.get(`http://localhost:5000/patient/appointments/${docInfo.id}`);
-        const times = res.data.map((a: any) =>
-          new Date(a.appointmentDate).toISOString().slice(0, 16)
-        );
-        setReservedSlots(times);
-      } catch (err) {
-        console.error("Failed to fetch reserved slots:", err);
-      }
-    };
+useEffect(() => {
+  const fetchReservedSlots = async () => {
+    if (!docInfo?.id) return;
+    try {
+      const res = await axios.get(`http://localhost:5000/patient/appointments/${docInfo.id}`);
+      console.log("Raw reserved slots response:", res.data);
 
-    if (docInfo) fetchReservedSlots();
-  }, [docInfo]);
-
-  const getAvailableSlots = () => {
-    if (!docInfo?.availability) return;
-
-    const today = new Date();
-    const newSlots: TimeSlot[][] = [];
-
-    for (let i = 0; i < 8; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-
-      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-      const availability = docInfo.availability.find(
-        (slot) => slot.dayOfWeek.toLowerCase() === dayName.toLowerCase()
+      const times = res.data.map((a: any) =>
+        new Date(a.appointmentDate).toISOString().slice(0, 16)
       );
+      console.log("Processed reserved slots:", times);
+      setReservedSlots(times);
+    } catch (err) {
+      console.error("Failed to fetch reserved slots:", err);
+    }
+  };
 
-      if (!availability) {
-        newSlots.push([]);
-        continue;
-      }
+  if (docInfo) fetchReservedSlots();
+}, [docInfo]);
 
-      const start = new Date(date);
-      const [startHour, startMinute] = availability.startTime.split(":").map(Number);
-      start.setHours(startHour, startMinute, 0, 0);
 
-      const end = new Date(date);
-      const [endHour, endMinute] = availability.endTime.split(":").map(Number);
-      end.setHours(endHour, endMinute, 0, 0);
+ const getAvailableSlots = () => {
+  if (!docInfo?.availability) return;
 
-      const slots: TimeSlot[] = [];
-      const isToday = i === 0;
-      const now = new Date();
+  const today = new Date();
+  const newSlots: TimeSlot[][] = [];
 
-      while (start < end) {
-        if (!isToday || start > now) {
-          const iso = start.toISOString().slice(0, 16);
-          const reserved = reservedSlots.includes(iso);
-          slots.push({
-            datetime: new Date(start),
-            time: start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            reserved,
-          });
-        }
-        start.setMinutes(start.getMinutes() + 30);
-      }
+  console.log("Reserved slots (ISO 16 chars):", reservedSlots); // debug reserved slots
 
-      newSlots.push(slots);
+  for (let i = 0; i < 20; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    const availability = docInfo.availability.find(
+      (slot) => slot.dayOfWeek.toLowerCase() === dayName.toLowerCase()
+    );
+
+    if (!availability) {
+      newSlots.push([]);
+      continue;
     }
 
-    setDocSlots(newSlots);
-  };
+    const start = new Date(date);
+    const [startHour, startMinute] = availability.startTime.split(":").map(Number);
+    start.setHours(startHour, startMinute, 0, 0);
+
+    const end = new Date(date);
+    const [endHour, endMinute] = availability.endTime.split(":").map(Number);
+    end.setHours(endHour, endMinute, 0, 0);
+
+    const slots: TimeSlot[] = [];
+    const isToday = i === 0;
+    const now = new Date();
+
+    while (start < end) {
+      if (!isToday || start > now) {
+        // Generate ISO string truncated to minutes (YYYY-MM-DDTHH:mm)
+        const iso = start.toISOString().slice(0, 16);
+
+        // DEBUG LOG
+        console.log("Checking slot:", iso, "Reserved?", reservedSlots.includes(iso));
+
+      slots.push({
+  datetime: new Date(start),
+  time: start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  reserved: reservedSlots.includes(iso),
+});
+
+      }
+      start.setMinutes(start.getMinutes() + 30);
+    }
+    newSlots.push(slots);
+  }
+  setDocSlots(newSlots);
+};
+
 
   useEffect(() => {
     if (docInfo && reservedSlots.length >= 0) getAvailableSlots();
@@ -138,7 +148,6 @@ function Appointment() {
     setSlotTime("");
   }, [slotIndex]);
 
-  
   const handleBooking = async () => {
     if (!slotTime || !docSlots[slotIndex]?.length || !patientId) return;
 
@@ -162,7 +171,7 @@ function Appointment() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message =
-        error.response?.data?.message || "Failed to book appointment. Please try again.";
+        error.response?.data?.message || "Already Reserved !! Please try again.";
       alert(message);
     }
   };
@@ -246,22 +255,21 @@ function Appointment() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {docSlots[slotIndex]?.map((slot, i) => (
-            <button
-              key={i}
-              onClick={() => !slot.reserved && setSlotTime(slot.time)}
-              disabled={slot.reserved}
-              className={`py-2 px-4 border rounded transition ${
-                slot.reserved
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : slotTime === slot.time
-                  ? "bg-purple-600 text-white"
-                  : "bg-white text-gray-800 hover:bg-blue-100"
-              }`}
-            >
-              {slot.time}
-            </button>
-          ))}
+          {docSlots[slotIndex]
+            ?.filter(slot => !slot.reserved) // <-- Filter reserved slots here
+            .map((slot, i) => (
+              <button
+                key={i}
+                onClick={() => setSlotTime(slot.time)}
+                className={`py-2 px-4 border rounded transition ${
+                  slotTime === slot.time
+                    ? "bg-purple-600 text-white"
+                    : "bg-white text-gray-800 hover:bg-blue-100"
+                }`}
+              >
+                {slot.time}
+              </button>
+            ))}
         </div>
 
         <button

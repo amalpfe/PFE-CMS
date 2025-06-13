@@ -189,40 +189,54 @@ const handleApp = async (req, res) => {
 
 
 const addReview = async (req, res) => {
-  const { appointmentId, patientId, rating, comment } = req.body;
-
-  console.log("Review request body:", req.body);
-
-  if (!appointmentId || !patientId || !rating || !comment) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
-
   try {
+    const { appointmentId, patientId, rating, comment } = req.body;
+
+    // Validate required fields
+    if (!appointmentId || !patientId || !rating || !comment) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    // 1. Check appointment date
     const [appointments] = await pool.execute(
-      "SELECT * FROM appointment WHERE id = ? AND patientId = ?",
+      "SELECT appointmentDate FROM appointment WHERE id = ? AND patientId = ?",
       [appointmentId, patientId]
     );
 
-    console.log("Appointment query result:", appointments);
-
     if (appointments.length === 0) {
-      return res.status(404).json({ 
-        message: `Appointment with id ${appointmentId} for patient ${patientId} not found.` 
-      });
+      return res.status(404).json({ message: "Appointment not found." });
     }
 
+    const appointmentDate = new Date(appointments[0].appointmentDate);
+    const currentDate = new Date();
+    if (appointmentDate > currentDate) {
+      return res.status(400).json({ message: "You can only review past appointments." });
+    }
+
+    // 2. Check if review already exists
+    const [existingReview] = await pool.execute(
+      "SELECT * FROM feedback WHERE appointmentId = ? AND patientId = ?",
+      [appointmentId, patientId]
+    );
+
+    if (existingReview.length > 0) {
+      return res.status(400).json({ message: "You already submitted a review for this appointment." });
+    }
+
+    // 3. Insert new review
     await pool.execute(
-      `INSERT INTO feedback (appointmentId, patientId, rating, comment, submittedAt)
-       VALUES (?, ?, ?, ?, NOW())`,
+      "INSERT INTO feedback (appointmentId, patientId, rating, comment, submittedAt) VALUES (?, ?, ?, ?, NOW())",
       [appointmentId, patientId, rating, comment]
     );
 
-    res.status(201).json({ message: "Review submitted successfully" });
-  } catch (err) {
-    console.error("Error adding review:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(201).json({ message: "Review submitted successfully." });
+
+  } catch (error) {
+    console.error("Error submitting review:", error);
+    return res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
+
 
 
 const getAppointmentsByPatient = async (req, res) => {
@@ -255,12 +269,57 @@ const getAppointmentsByPatient = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+// ✅ UpdateProfile Function
+const UpdateProfile = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      gender,
+      dateOfBirth,
+      addressLine1,
+      addressLine2,
+      image, // base64 image string (e.g., data:image/jpeg;base64,...)
+    } = req.body;
+
+    const patientId = req.params.id;
+
+    const updateFields = {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      gender,
+      dateOfBirth,
+      address: JSON.stringify({
+        line1: addressLine1,
+        line2: addressLine2,
+      }),
+      image, // saved as base64 string
+    };
+
+    await db.query('UPDATE patient SET ? WHERE id = ?', [
+      updateFields,
+      patientId,
+    ]);
+
+    res.status(200).json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('UpdateProfile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
 const getProfile = async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
 
   try {
     const [result] = await pool.query(
-      'SELECT id, firstName, lastName, email, phoneNumber, gender, dateOfBirth, address FROM patient WHERE id = ?',
+      'SELECT id, firstName, lastName, email, phoneNumber, gender, dateOfBirth, address, image FROM patient WHERE id = ?',
       [id]
     );
 
@@ -270,22 +329,29 @@ const getProfile = async (req, res) => {
 
     const patient = result[0];
     const name = `${patient.firstName} ${patient.lastName}`;
-    const [line1, line2 = ''] = (patient.address || "").split(',');
+    const [line1, line2 = ""] = (patient.address || "").split(',');
 
     res.json({
       name,
+      firstName: patient.firstName,
+      lastName: patient.lastName,
       email: patient.email,
       phone: patient.phoneNumber,
       gender: patient.gender,
       dob: patient.dateOfBirth,
       image: patient.image,
-      address: { line1: line1.trim(), line2: line2.trim() },
+      address: {
+        line1: line1.trim(),
+        line2: line2.trim(),
+      },
     });
   } catch (error) {
     console.error("Error fetching patient profile:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
 
 
 const getMedicalRecordsByPatientId = async (req, res) => {
@@ -347,28 +413,7 @@ const contactUs = async (req, res) => {
     res.status(500).json({ error: "Something went wrong." });
   }
 };
-const UpdateProfile = async (req, res) => {
-  const { id } = req.params;
-  const { name, email, phone, gender, dob, address } = req.body;
 
-  const [firstName, ...rest] = name.split(' ');
-  const lastName = rest.join(' ') || '';
-  const fullAddress = `${address.line1}, ${address.line2}`;
-
-  try {
-    const [result] = await pool.query(
-      `UPDATE patient 
-       SET firstName = ?, lastName = ?, email = ?, phoneNumber = ?, gender = ?, dateOfBirth = ?, address = ? 
-       WHERE id = ?`,
-      [firstName, lastName, email, phone, gender, dob, fullAddress, id]
-    );
-
-    res.json({ message: "Profile updated successfully" });
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 
 const submitFeedback = async (req, res) => {

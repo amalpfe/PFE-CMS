@@ -27,6 +27,7 @@ exports.getRecentAppointments = async (req, res) => {
     const [rows] = await db.query(`
       SELECT 
         p.firstName AS patientName,
+        p.image AS patientImage,       -- ✅ أضفنا الصورة من جدول patient
         d.firstName AS doctorName,
         a.id,
         a.appointmentDate,
@@ -42,7 +43,8 @@ exports.getRecentAppointments = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
-}; 
+};
+ 
 
 // controllers/appointmentController.js
 exports.getAllAppointments = async (req, res) => {
