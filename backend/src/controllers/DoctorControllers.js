@@ -615,3 +615,53 @@ exports.getMedicalRecordsByPatient = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
+// Create appointment controller
+
+exports.createAppointment = (req, res) => {
+  let { doctorId, patientId, appointmentDate, appointmentStatus, notes } = req.body;
+
+  if (!doctorId || !patientId || !appointmentDate) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  // Format date for MySQL
+  appointmentDate = appointmentDate.replace('T', ' ') + ':00';
+
+  // Verify doctor exists
+  db.query('SELECT * FROM doctor WHERE id = ?', [doctorId], (err, doctorResult) => {
+    if (err) return res.status(500).json({ message: 'DB error' });
+    if (doctorResult.length === 0) {
+      return res.status(400).json({ message: 'Doctor not found' });
+    }
+
+    // Verify patient exists
+    db.query('SELECT * FROM patient WHERE id = ?', [patientId], (err, patientResult) => {
+      if (err) return res.status(500).json({ message: 'DB error' });
+      if (patientResult.length === 0) {
+        return res.status(400).json({ message: 'Patient not found' });
+      }
+
+      // Insert appointment
+      const sql = `
+        INSERT INTO appointment 
+        (doctorId, patientId, appointmentDate, appointmentStatus, notes, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+      `;
+
+      db.query(
+        sql,
+        [doctorId, patientId, appointmentDate, appointmentStatus || 'Scheduled', notes || ''],
+        (err, result) => {
+          if (err) {
+            console.error('Error inserting appointment:', err);
+            return res.status(500).json({ message: 'Database error' });
+          }
+          res.status(201).json({ message: 'Appointment created successfully', appointmentId: result.insertId });
+        }
+      );
+    });
+  });
+};
+

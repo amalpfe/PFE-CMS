@@ -11,6 +11,8 @@ import DoctorProfile from "./pages/DoctorProfile";
 import PatientList from "./pages/patientlist";
 import DoctorPatientList from './pages/doctorpatientlist';
 import PatientDetails from "./pages/PatientDetails";
+import CreateAppointment from "./pages/CreateAppointment"; // adjust path if necessary
+
 function App() {
   return (
     <div className="min-h-screen w-full bg-gray-50"> {/* Fullscreen container */}
@@ -28,6 +30,7 @@ function App() {
         <Route path="/doctor/profile" element={<DoctorProfile />} />
         <Route path="/doctor/patients" element={<DoctorPatientList />} />
         <Route path="/doctor/patients/:id" element={<PatientDetails />} />
+        <Route path="/doctor/appointments/create" element={<CreateAppointment />} />
         {/* <Route path="/doctor/medical-records" element={<MedicalRecords />} />
         <Route path="/doctor/prescriptions" element={<PrescriptionList />} />  */}
         {/* <Route path="schedule" element={<DoctorSchedule />} />
