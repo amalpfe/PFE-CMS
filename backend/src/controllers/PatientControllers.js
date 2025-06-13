@@ -281,7 +281,7 @@ const UpdateProfile = async (req, res) => {
       dateOfBirth,
       addressLine1,
       addressLine2,
-      image, // base64 image string (e.g., data:image/jpeg;base64,...)
+      image, // optional base64 image string
     } = req.body;
 
     const patientId = req.params.id;
@@ -294,13 +294,16 @@ const UpdateProfile = async (req, res) => {
       gender,
       dateOfBirth,
       address: JSON.stringify({
-        line1: addressLine1,
-        line2: addressLine2,
+        line1: addressLine1 || "",
+        line2: addressLine2 || "",
       }),
-      image, // saved as base64 string
     };
 
-    await db.query('UPDATE patient SET ? WHERE id = ?', [
+    if (image) {
+      updateFields.image = image; // base64 string
+    }
+
+    await pool.query('UPDATE patient SET ? WHERE id = ?', [
       updateFields,
       patientId,
     ]);
@@ -311,7 +314,6 @@ const UpdateProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 
 const getProfile = async (req, res) => {
@@ -329,7 +331,16 @@ const getProfile = async (req, res) => {
 
     const patient = result[0];
     const name = `${patient.firstName} ${patient.lastName}`;
-    const [line1, line2 = ""] = (patient.address || "").split(',');
+    
+    let line1 = "", line2 = "";
+    try {
+      const parsedAddress = JSON.parse(patient.address || "{}");
+      line1 = parsedAddress.line1 || "";
+      line2 = parsedAddress.line2 || "";
+    } catch {
+      line1 = "";
+      line2 = "";
+    }
 
     res.json({
       name,
@@ -341,8 +352,8 @@ const getProfile = async (req, res) => {
       dob: patient.dateOfBirth,
       image: patient.image,
       address: {
-        line1: line1.trim(),
-        line2: line2.trim(),
+        line1,
+        line2,
       },
     });
   } catch (error) {
@@ -350,6 +361,7 @@ const getProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
