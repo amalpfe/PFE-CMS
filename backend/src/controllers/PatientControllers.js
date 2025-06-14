@@ -281,7 +281,15 @@ const UpdateProfile = async (req, res) => {
       dateOfBirth,
       addressLine1,
       addressLine2,
-      image, // optional base64 image string
+      weight,
+      height,
+      geneticDiseases,
+      chronicDiseases,
+      allergies,
+      bloodGroup,
+      maritalStatus,
+      hasSurgery,
+      image, // optional base64 string
     } = req.body;
 
     const patientId = req.params.id;
@@ -297,10 +305,18 @@ const UpdateProfile = async (req, res) => {
         line1: addressLine1 || "",
         line2: addressLine2 || "",
       }),
+      weight: weight || null,
+      height: height || null,
+      geneticDiseases: geneticDiseases || "",
+      chronicDiseases: chronicDiseases || "",
+      allergies: allergies || "",
+      bloodGroup: bloodGroup || "",
+      maritalStatus: maritalStatus || "",
+      hasSurgery: hasSurgery ?? null,
     };
 
     if (image) {
-      updateFields.image = image; // base64 string
+      updateFields.image = image;
     }
 
     await pool.query('UPDATE patient SET ? WHERE id = ?', [
@@ -316,12 +332,18 @@ const UpdateProfile = async (req, res) => {
 };
 
 
+
 const getProfile = async (req, res) => {
   const { id } = req.params;
 
   try {
     const [result] = await pool.query(
-      'SELECT id, firstName, lastName, email, phoneNumber, gender, dateOfBirth, address, image FROM patient WHERE id = ?',
+      `SELECT 
+        id, firstName, lastName, email, phoneNumber, gender, 
+        dateOfBirth, address, image,
+        weight, height, geneticDiseases, chronicDiseases,
+        allergies, bloodGroup, maritalStatus, hasSurgery
+      FROM patient WHERE id = ?`,
       [id]
     );
 
@@ -330,9 +352,8 @@ const getProfile = async (req, res) => {
     }
 
     const patient = result[0];
-    const name = `${patient.firstName} ${patient.lastName}`;
-    
     let line1 = "", line2 = "";
+
     try {
       const parsedAddress = JSON.parse(patient.address || "{}");
       line1 = parsedAddress.line1 || "";
@@ -343,18 +364,26 @@ const getProfile = async (req, res) => {
     }
 
     res.json({
-      name,
+      id: patient.id,
       firstName: patient.firstName,
       lastName: patient.lastName,
       email: patient.email,
-      phone: patient.phoneNumber,
+      phoneNumber: patient.phoneNumber,
       gender: patient.gender,
-      dob: patient.dateOfBirth,
+      dateOfBirth: patient.dateOfBirth,
       image: patient.image,
       address: {
         line1,
         line2,
       },
+      weight: patient.weight,
+      height: patient.height,
+      geneticDiseases: patient.geneticDiseases,
+      chronicDiseases: patient.chronicDiseases,
+      allergies: patient.allergies,
+      bloodGroup: patient.bloodGroup,
+      maritalStatus: patient.maritalStatus,
+      hasSurgery: patient.hasSurgery,
     });
   } catch (error) {
     console.error("Error fetching patient profile:", error);
@@ -366,16 +395,24 @@ const getProfile = async (req, res) => {
 
 
 
+
 const getMedicalRecordsByPatientId = async (req, res) => {
   const { patientId } = req.params;
 
-  if (!patientId) {
-    return res.status(400).json({ error: "Patient ID is required." });
+  if (!patientId || isNaN(parseInt(patientId, 10))) {
+    return res.status(400).json({ error: "Valid patient ID is required." });
   }
 
   try {
     const [records] = await pool.execute(
-      `SELECT id, recordDate AS visitDate, diagnosis, treatment, prescription 
+      `SELECT 
+         id, 
+         recordDate AS visitDate, 
+         diagnosis, 
+         treatment, 
+         prescription, 
+         notes, 
+         attachment 
        FROM medicalrecord 
        WHERE patientId = ? 
        ORDER BY recordDate DESC`,
@@ -388,6 +425,7 @@ const getMedicalRecordsByPatientId = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch medical records." });
   }
 };
+
 
 const getLabResults = (req, res) => {
   const patientId = req.params.patientId;

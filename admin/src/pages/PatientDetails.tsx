@@ -17,6 +17,15 @@ interface Patient {
   createdAt: string;
   updatedAt: string;
   username: string;
+  weight?: number | null;
+  height?: number | null;
+  geneticDiseases?: string;
+  chronicDiseases?: string;
+  allergy?: string;
+  bloodGroup?: string;
+  maritalStatus?: string;
+  hadSurgery?: boolean | null;
+  image?: string;
 }
 
 interface MedicalRecord {
@@ -27,6 +36,8 @@ interface MedicalRecord {
   treatment: string;
   prescription: string;
   recordDate: string;
+  notes?: string;
+  attachment?: string;
 }
 
 const PatientDetails = () => {
@@ -43,6 +54,8 @@ const PatientDetails = () => {
   const [newDiagnosis, setNewDiagnosis] = useState("");
   const [newTreatment, setNewTreatment] = useState("");
   const [newPrescription, setNewPrescription] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [newAttachment, setNewAttachment] = useState<string | null>(null);
   const [newRecordDate, setNewRecordDate] = useState(new Date().toISOString().slice(0, 10));
 
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -89,6 +102,27 @@ const PatientDetails = () => {
     fetchMedicalRecords();
   }, [id, doctorId, navigate]);
 
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await convertFileToBase64(file);
+        setNewAttachment(base64);
+      } catch {
+        setSubmitError("Failed to upload attachment.");
+      }
+    }
+  };
+
   const handleAddMedicalRecord = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -114,6 +148,8 @@ const PatientDetails = () => {
         diagnosis: newDiagnosis,
         treatment: newTreatment,
         prescription: newPrescription,
+        notes: newNotes,
+        attachment: newAttachment,
         recordDate: newRecordDate,
       });
 
@@ -121,6 +157,8 @@ const PatientDetails = () => {
       setNewDiagnosis("");
       setNewTreatment("");
       setNewPrescription("");
+      setNewNotes("");
+      setNewAttachment(null);
       setNewRecordDate(new Date().toISOString().slice(0, 10));
 
       const res = await axios.get(`http://localhost:5000/doctor/patient/${patient.id}/medical-records`);
@@ -142,9 +180,31 @@ const PatientDetails = () => {
         <h1 className="text-3xl font-bold mb-8 text-center text-purple-800">Patient Details</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 text-gray-700">
+          {patient.image && (
+            <img
+              src={patient.image}
+              alt={`${patient.firstName} ${patient.lastName}`}
+              className="w-32 h-32 rounded-full object-cover col-span-1 md:col-span-2 mx-auto mb-4"
+            />
+          )}
+
           <p><span className="font-semibold">Name:</span> {patient.firstName} {patient.lastName}</p>
           <p><span className="font-semibold">Date of Birth:</span> {new Date(patient.dateOfBirth).toLocaleDateString()}</p>
           <p><span className="font-semibold">Gender:</span> {patient.gender}</p>
+          {patient.weight !== null && patient.weight !== undefined && (
+            <p><span className="font-semibold">Weight:</span> {patient.weight} kg</p>
+          )}
+          {patient.height !== null && patient.height !== undefined && (
+            <p><span className="font-semibold">Height:</span> {patient.height} cm</p>
+          )}
+          {patient.geneticDiseases && <p><span className="font-semibold">Genetic Diseases:</span> {patient.geneticDiseases}</p>}
+          {patient.chronicDiseases && <p><span className="font-semibold">Chronic Diseases:</span> {patient.chronicDiseases}</p>}
+          {patient.allergy && <p><span className="font-semibold">Allergy:</span> {patient.allergy}</p>}
+          {patient.bloodGroup && <p><span className="font-semibold">Blood Group:</span> {patient.bloodGroup}</p>}
+          {patient.maritalStatus && <p><span className="font-semibold">Marital Status:</span> {patient.maritalStatus}</p>}
+          {patient.hadSurgery !== null && patient.hadSurgery !== undefined && (
+            <p><span className="font-semibold">Had Surgery:</span> {patient.hadSurgery ? "Yes" : "No"}</p>
+          )}
           {patient.phoneNumber && <p><span className="font-semibold">Phone:</span> {patient.phoneNumber}</p>}
           {patient.email && <p><span className="font-semibold">Email:</span> {patient.email}</p>}
           {patient.address && <p><span className="font-semibold">Address:</span> {patient.address}</p>}
@@ -193,7 +253,7 @@ const PatientDetails = () => {
         </div>
 
         <div>
-          <h2 className="text-3xl font-bold mb-8 text-center text-purple-800">Add Medical Record</h2>
+        <h2 className="text-3xl font-bold mb-8 text-center text-purple-800">Add Medical Record</h2>
           {submitError && <p className="text-red-500 mb-2">{submitError}</p>}
           {submitSuccess && <p className="text-green-600 mb-2">{submitSuccess}</p>}
 
@@ -234,6 +294,31 @@ const PatientDetails = () => {
             </div>
 
             <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                id="notes"
+                className="w-full border border-gray-300 rounded-lg p-2"
+                rows={3}
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="attachment" className="block text-sm font-medium text-gray-700 mb-1">Attachment (Image, PDF)</label>
+              <input
+                id="attachment"
+                type="file"
+                className="block w-full text-sm text-gray-600"
+                accept="image/*,.pdf"
+                onChange={handleFileChange}
+              />
+              {newAttachment && (
+                <p className="text-sm text-green-600 mt-1">File uploaded successfully.</p>
+              )}
+            </div>
+
+            <div>
               <label htmlFor="recordDate" className="block text-sm font-medium text-gray-700 mb-1">Record Date *</label>
               <input
                 id="recordDate"
@@ -253,17 +338,9 @@ const PatientDetails = () => {
               {submitLoading ? "Adding..." : "Add Record"}
             </button>
           </form>
-
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={() => navigate(`/doctor/appointments/create?patientId=${patient.id}`)}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg"
-            >
-              Add Appointment
-            </button>
-          </div>
         </div>
-      </div>
+        </div>
+      
     </DoctorLayout>
   );
 };

@@ -34,7 +34,6 @@ const Reports = () => {
           `http://localhost:5000/patient/reports/${patientId}`
         );
         setReports(response.data);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         setError("Failed to fetch medical records.");
       } finally {
@@ -46,13 +45,15 @@ const Reports = () => {
   }, [patientId]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold text-purple-700 flex items-center justify-center gap-3">
-          <FaFileMedicalAlt className="text-purple-600 text-3xl" />
+    <div className="max-w-7xl mx-auto px-4 py-10 bg-gray-50 min-h-screen">
+      <div>
+        <h1 className="text-3xl font-bold text-purple-700 mb-6 border-b pb-4">
+         
           Medical Reports
         </h1>
-        <p className="text-gray-500 mt-2">Review your visit history and medical summaries</p>
+        <p className="text-gray-600 mt-2 text-sm sm:text-base">
+          Review your medical visit history and summaries
+        </p>
       </div>
 
       {loading ? (
@@ -60,24 +61,26 @@ const Reports = () => {
       ) : error ? (
         <p className="text-center text-red-500">{error}</p>
       ) : reports.length === 0 ? (
-        <p className="text-gray-500 text-lg text-center">No medical reports available.</p>
+        <p className="text-center text-gray-500 text-lg">No medical reports available.</p>
       ) : (
         <div className="grid md:grid-cols-2 gap-8">
           {reports.map((report) => (
             <div
               key={report.id}
-              className="bg-gradient-to-br from-white via-purple-50 to-white rounded-2xl p-6 shadow-md border hover:shadow-lg transition"
+              className="bg-gradient-to-br from-white via-purple-50 to-white rounded-3xl p-6 shadow-md border-2 border-purple-200 hover:shadow-lg hover:scale-[1.02] transition-transform duration-300 cursor-default"
             >
-              <div className="mb-3">
-                <span className="block text-sm text-gray-500">Visit Date</span>
-                <p className="text-lg font-semibold text-gray-800">
-                  {new Date(report.visitDate).toLocaleDateString()}
-                </p>
+              <div className="flex items-center justify-between mb-5">
+                <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full tracking-wide select-text">
+                  {new Date(report.visitDate).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                <FaFileMedicalAlt className="text-purple-600 text-xl" />
               </div>
 
-              <hr className="my-3 border-gray-200" />
-
-              <div className="space-y-2">
+              <div className="space-y-5">
                 {report.symptoms && <ReportItem label="Symptoms" value={report.symptoms} />}
                 <ReportItem label="Diagnosis" value={report.diagnosis} />
                 <ReportItem label="Treatment" value={report.treatment} />
@@ -92,11 +95,10 @@ const Reports = () => {
   );
 };
 
-// Reusable component
 const ReportItem = ({ label, value }: { label: string; value: string }) => (
   <div>
-    <h4 className="text-sm font-medium text-purple-700">{label}</h4>
-    <p className="text-sm text-gray-700">{value}</p>
+    <h4 className="text-sm font-semibold text-purple-700">{label}</h4>
+    <p className="text-gray-700 text-sm leading-relaxed select-text">{value}</p>
   </div>
 );
 

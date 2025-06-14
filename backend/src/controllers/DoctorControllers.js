@@ -558,7 +558,7 @@ exports.getPatientById = async (req, res) => {
 };
 
 exports.addMedicalRecord = async (req, res) => {
-  const doctorId = req.params.id; // get doctorId from URL param
+  const doctorId = req.params.id;
 
   const {
     patientId,
@@ -566,9 +566,10 @@ exports.addMedicalRecord = async (req, res) => {
     treatment,
     prescription,
     recordDate,
+    notes,
+    attachment, // new
   } = req.body;
 
-  // Basic validation
   if (
     !patientId ||
     isNaN(parseInt(patientId, 10)) ||
@@ -583,8 +584,9 @@ exports.addMedicalRecord = async (req, res) => {
 
   try {
     const sql = `
-      INSERT INTO medicalrecord (patientId, doctorId, diagnosis, treatment, prescription, recordDate)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO medicalrecord (
+        patientId, doctorId, diagnosis, treatment, prescription, recordDate, notes, attachment
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await db.query(sql, [
@@ -594,6 +596,8 @@ exports.addMedicalRecord = async (req, res) => {
       treatment,
       prescription || null,
       recordDate,
+      notes || null,
+      attachment || null,
     ]);
 
     return res.status(201).json({
@@ -606,6 +610,7 @@ exports.addMedicalRecord = async (req, res) => {
   }
 };
 
+
 exports.getMedicalRecordsByPatient = async (req, res) => {
   const patientId = req.params.id;
 
@@ -614,7 +619,11 @@ exports.getMedicalRecordsByPatient = async (req, res) => {
   }
 
   try {
-    const sql = 'SELECT * FROM medicalrecord WHERE patientId = ? ORDER BY recordDate DESC';
+    const sql = `
+      SELECT * FROM medicalrecord 
+      WHERE patientId = ? 
+      ORDER BY recordDate DESC
+    `;
     const [records] = await db.query(sql, [patientId]);
     return res.json(records);
   } catch (error) {
@@ -622,6 +631,7 @@ exports.getMedicalRecordsByPatient = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
 // Create appointment controller

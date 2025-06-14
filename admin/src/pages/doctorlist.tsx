@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Table, Input, Button, Modal, Form, Space, Image, Typography, message } from "antd";
+import { EditOutlined, DeleteOutlined, EyeOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import Layout from "../components/Layout";
+
+const { Search } = Input;
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 interface Doctor {
   id: string;
@@ -22,25 +28,21 @@ interface Doctor {
 const DoctorList = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
-  const [form, setForm] = useState<Partial<Doctor>>({});
-
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Doctor | null>(null);
-
   const [searchTerm, setSearchTerm] = useState<string>("");
 
+  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [viewingDoctor, setViewingDoctor] = useState<Doctor | null>(null);
+  const [form] = Form.useForm();
+
+  // Fetch doctors data
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
         const response = await axios.get("http://localhost:5000/admin/doctors");
         setDoctors(response.data);
-        setError(null);
-      } catch (err) {
-        setError("Failed to fetch doctors");
+      } catch (error) {
+        message.error("Failed to fetch doctors");
       } finally {
         setLoading(false);
       }
@@ -48,45 +50,7 @@ const DoctorList = () => {
     fetchDoctors();
   }, []);
 
-  const handleDeleteConfirm = async () => {
-    if (deleteTarget) {
-      try {
-        await axios.delete(`http://localhost:5000/admin/doctors/${deleteTarget.id}`);
-        setDoctors((prev) => prev.filter((doc) => doc.id !== deleteTarget.id));
-        setDeleteTarget(null);
-      } catch (err) {
-        alert("Failed to delete doctor");
-      }
-    }
-  };
-
-  const handleEdit = (doctor: Doctor) => {
-    setEditingDoctor(doctor);
-    setForm(doctor);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleUpdate = async () => {
-    if (editingDoctor) {
-      try {
-        const response = await axios.put(
-          `http://localhost:5000/admin/doctors/${editingDoctor.id}`,
-          form
-        );
-        setDoctors((prev) =>
-          prev.map((doc) => (doc.id === editingDoctor.id ? response.data : doc))
-        );
-        setEditingDoctor(null);
-      } catch (err) {
-        alert("Failed to update doctor");
-      }
-    }
-  };
-
+  // Filter doctors by search term
   const filteredDoctors = doctors.filter((doctor) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -97,195 +61,308 @@ const DoctorList = () => {
     );
   });
 
-  if (loading)
-    return (
-      <Layout>
-        <p className="p-6 text-center">Loading doctors...</p>
-      </Layout>
-    );
-  if (error)
-    return (
-      <Layout>
-        <p className="p-6 text-center text-red-600">{error}</p>
-      </Layout>
-    );
+  // Confirm delete modal
+  const showDeleteConfirm = (doctor: Doctor) => {
+    confirm({
+      title: `Are you sure you want to delete Dr. ${doctor.firstName} ${doctor.lastName}?`,
+      icon: <ExclamationCircleOutlined />,
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk() {
+        handleDeleteDoctor(doctor.id);
+      },
+    });
+  };
+
+  // Delete doctor handler
+  const handleDeleteDoctor = async (id: string) => {
+    try {
+      await axios.delete(`http://localhost:5000/admin/doctors/${id}`);
+      setDoctors((prev) => prev.filter((doc) => doc.id !== id));
+      message.success("Doctor deleted successfully");
+    } catch (error) {
+      message.error("Failed to delete doctor");
+    }
+  };
+
+  // Edit modal open
+  const openEditModal = (doctor: Doctor) => {
+    setEditingDoctor(doctor);
+    form.setFieldsValue({
+      firstName: doctor.firstName,
+      lastName: doctor.lastName,
+      specialty: doctor.specialty,
+      email: doctor.email,
+      phoneNumber: doctor.phoneNumber,
+      fees: doctor.fees,
+    });
+  };
+
+  // Edit modal submit
+  const handleEditSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      if (!editingDoctor) return;
+
+      const response = await axios.put(`http://localhost:5000/admin/doctors/${editingDoctor.id}`, values);
+      setDoctors((prev) =>
+        prev.map((doc) => (doc.id === editingDoctor.id ? response.data : doc))
+      );
+      message.success("Doctor updated successfully");
+      setEditingDoctor(null);
+      form.resetFields();
+    } catch (error) {
+      message.error("Failed to update doctor");
+    }
+  };
+
+  // Columns for antd Table
+  const columns = [
+    {
+      title: "Image",
+      dataIndex: "image",
+      key: "image",
+      render: (image: string) => (
+        <Image
+          width={50}
+          height={50}
+          src={image || "https://via.placeholder.com/100"}
+          alt="doctor"
+          style={{ borderRadius: "50%" }}
+          preview={false}
+        />
+      ),
+      width: 80,
+    },
+    {
+      title: "Name",
+      dataIndex: "firstName",
+      key: "name",
+      render: (_: any, record: Doctor) => `${record.firstName} ${record.lastName}`,
+      sorter: (a: Doctor, b: Doctor) => a.firstName.localeCompare(b.firstName),
+      width: 180,
+    },
+    {
+      title: "Specialty",
+      dataIndex: "specialty",
+      key: "specialty",
+      sorter: (a: Doctor, b: Doctor) => a.specialty.localeCompare(b.specialty),
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+    {
+      title: "Phone",
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
+    },
+    {
+      title: "Fees",
+      dataIndex: "fees",
+      key: "fees",
+      render: (fees: string) => `$${fees}`,
+      sorter: (a: Doctor, b: Doctor) => Number(a.fees) - Number(b.fees),
+      width: 100,
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_: any, record: Doctor) => (
+        <Space>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => setViewingDoctor(record)}
+            type="default"
+          />
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => openEditModal(record)}
+            type="primary"
+          />
+          <Button
+            icon={<DeleteOutlined />}
+            onClick={() => showDeleteConfirm(record)}
+            danger
+          />
+        </Space>
+      ),
+      width: 140,
+    },
+  ];
 
   return (
     <Layout>
       <div className="p-6">
-        <h1 className="text-3xl font-bold text-purple-600 mb-4">Doctor List</h1>
+        <Title level={2} style={{ color: "#6b21a8", marginBottom: 24 }}>
+          Doctor List
+        </Title>
 
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Search by name, email, or specialty..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 border rounded shadow-sm"
-          />
-        </div>
+        <Search
+          placeholder="Search by name, email, or specialty..."
+          allowClear
+          enterButton="Search"
+          size="middle"
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ marginBottom: 16, maxWidth: 400 }}
+          value={searchTerm}
+        />
 
-        <div className="overflow-x-auto mb-6">
-          <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-            <thead className="bg-purple-600 text-white">
-              <tr>
-                <th className="py-3 px-4 text-left">Image</th>
-                <th className="py-3 px-4 text-left">Name</th>
-                <th className="py-3 px-4 text-left">Specialty</th>
-                <th className="py-3 px-4 text-left">Email</th>
-                <th className="py-3 px-4 text-left">Phone</th>
-                <th className="py-3 px-4 text-left">Fees</th>
-                <th className="py-3 px-4 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDoctors.map((doctor) => (
-                <tr key={doctor.id} className="border-b">
-                  <td className="py-3 px-4">
-                    <img
-                      src={doctor.image || "https://via.placeholder.com/100"}
-                      alt={`${doctor.firstName} ${doctor.lastName}`}
-                      className="w-12 h-12 object-cover rounded-full"
-                    />
-                  </td>
-                  <td className="py-3 px-4">
-                    {doctor.firstName} {doctor.lastName}
-                  </td>
-                  <td className="py-3 px-4">{doctor.specialty}</td>
-                  <td className="py-3 px-4">{doctor.email}</td>
-                  <td className="py-3 px-4">{doctor.phoneNumber}</td>
-                  <td className="py-3 px-4">${doctor.fees}</td>
-                  <td className="py-3 px-4 flex gap-2">
-                    <button
-                      onClick={() => handleEdit(doctor)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(doctor)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                    >
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => setSelectedDoctor(doctor)}
-                      className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filteredDoctors.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-6 text-center text-gray-500">
-                    No matching doctors found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          rowKey="id"
+          dataSource={filteredDoctors}
+          columns={columns}
+          loading={loading}
+          pagination={{ pageSize: 8 }}
+          bordered
+          scroll={{ x: 900 }}
+        />
 
-        {/* Edit Modal */}
-        {editingDoctor && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-xl shadow-lg">
-              <h2 className="text-xl font-semibold mb-4 text-purple-700">
-                Edit Doctor: {editingDoctor.firstName} {editingDoctor.lastName}
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                {["firstName", "lastName", "specialty", "email", "phoneNumber", "fees"].map((field) => (
-                  <input
-                    key={field}
-                    type="text"
-                    name={field}
-                    value={form[field as keyof Doctor] || ""}
-                    onChange={handleChange}
-                    placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                    className="p-2 border rounded"
-                  />
-                ))}
-              </div>
-              <div className="mt-4 flex gap-4">
-                <button
-                  onClick={handleUpdate}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => setEditingDoctor(null)}
-                  className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Edit Doctor Modal */}
+        <Modal
+          title={`Edit Doctor: ${editingDoctor?.firstName} ${editingDoctor?.lastName}`}
+          visible={!!editingDoctor}
+          onOk={handleEditSubmit}
+          onCancel={() => {
+            setEditingDoctor(null);
+            form.resetFields();
+          }}
+          okText="Save Changes"
+          cancelText="Cancel"
+          destroyOnClose
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={editingDoctor || {}}
+            preserve={false}
+          >
+            <Form.Item
+              name="firstName"
+              label="First Name"
+              rules={[{ required: true, message: "Please enter first name" }]}
+            >
+              <Input />
+            </Form.Item>
 
-        {/* View Modal */}
-        {selectedDoctor && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl">
-              <h2 className="text-2xl font-bold mb-4 text-purple-700">
-                Doctor Profile
-              </h2>
-              <div className="flex gap-6">
-                <img
-                  src={selectedDoctor.image || "https://via.placeholder.com/150"}
-                  alt={selectedDoctor.firstName}
-                  className="w-40 h-40 object-cover rounded-lg"
-                />
-                <div className="space-y-2">
-                  <p><strong>Name:</strong> {selectedDoctor.firstName} {selectedDoctor.lastName}</p>
-                  <p><strong>Specialty:</strong> {selectedDoctor.specialty}</p>
-                  <p><strong>Email:</strong> {selectedDoctor.email}</p>
-                  <p><strong>Phone:</strong> {selectedDoctor.phoneNumber}</p>
-                  <p><strong>Degree:</strong> {selectedDoctor.degree}</p>
-                  <p><strong>Fees:</strong> ${selectedDoctor.fees}</p>
-                  <p><strong>Experience:</strong> {selectedDoctor.experience}</p>
-                  <p><strong>Address:</strong> {selectedDoctor.address}</p>
-                  <p><strong>About:</strong> {selectedDoctor.about}</p>
-                </div>
-              </div>
-              <div className="mt-6 text-right">
-                <button
-                  onClick={() => setSelectedDoctor(null)}
-                  className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+            <Form.Item
+              name="lastName"
+              label="Last Name"
+              rules={[{ required: true, message: "Please enter last name" }]}
+            >
+              <Input />
+            </Form.Item>
 
-        {/* Delete Confirmation Modal */}
-        {deleteTarget && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Confirm Deletion</h2>
-              <p>Are you sure you want to delete <strong>{deleteTarget.firstName} {deleteTarget.lastName}</strong>?</p>
-              <div className="mt-6 flex justify-end gap-4">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                >
-                  Delete
-                </button>
+            <Form.Item
+              name="specialty"
+              label="Specialty"
+              rules={[{ required: true, message: "Please enter specialty" }]}
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true, message: "Please enter email" },
+                { type: "email", message: "Please enter a valid email" },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="phoneNumber"
+              label="Phone Number"
+              rules={[{ required: true, message: "Please enter phone number" }]}
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="fees"
+              label="Fees"
+              rules={[{ required: true, message: "Please enter fees" }]}
+            >
+              <Input type="number" min={0} />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* View Doctor Modal */}
+        <Modal
+          title={`Doctor Profile: ${viewingDoctor?.firstName} ${viewingDoctor?.lastName}`}
+          visible={!!viewingDoctor}
+          footer={[
+            <Button key="close" onClick={() => setViewingDoctor(null)}>
+              Close
+            </Button>,
+          ]}
+          onCancel={() => setViewingDoctor(null)}
+          width={600}
+          destroyOnClose
+        >
+          {viewingDoctor && (
+            <Space size="large" direction="horizontal" style={{ width: "100%" }}>
+              <Image
+                width={150}
+                height={150}
+                src={viewingDoctor.image || "https://via.placeholder.com/150"}
+                alt={`${viewingDoctor.firstName} ${viewingDoctor.lastName}`}
+                style={{ borderRadius: 8 }}
+                preview={false}
+              />
+              <div style={{ flex: 1 }}>
+                <Text>
+                  <strong>Name: </strong>
+                  {viewingDoctor.firstName} {viewingDoctor.lastName}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Specialty: </strong>
+                  {viewingDoctor.specialty}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Email: </strong>
+                  {viewingDoctor.email}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Phone: </strong>
+                  {viewingDoctor.phoneNumber}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Degree: </strong>
+                  {viewingDoctor.degree}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Fees: </strong>${viewingDoctor.fees}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Experience: </strong>
+                  {viewingDoctor.experience}
+                </Text>
+                <br />
+                <Text>
+                  <strong>Address: </strong>
+                  {viewingDoctor.address}
+                </Text>
+                <br />
+                <Text>
+                  <strong>About: </strong>
+                  {viewingDoctor.about}
+                </Text>
               </div>
-            </div>
-          </div>
-        )}
+            </Space>
+          )}
+        </Modal>
       </div>
     </Layout>
   );

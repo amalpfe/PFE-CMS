@@ -100,8 +100,7 @@ const MyAppointments = () => {
         );
         setShowCancelModal(false);
         setSelectedDoctor(null);
-        
-        // Show success message for 3 seconds
+
         setSuccessMessage("Appointment cancelled successfully.");
         setTimeout(() => {
           setSuccessMessage("");
@@ -113,10 +112,10 @@ const MyAppointments = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10 bg-gray-50 relative">
-      <p className="text-2xl font-bold text-purple-800 pb-4 border-b mb-8">
+    <div className="max-w-5xl mx-auto px-4 py-10 bg-white rounded-lg shadow-sm">
+      <h2 className="text-3xl font-bold text-purple-700 mb-6 border-b pb-4">
         My Appointments
-      </p>
+      </h2>
 
       {successMessage && (
         <div className="fixed top-5 right-5 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-md z-50">
@@ -125,77 +124,79 @@ const MyAppointments = () => {
       )}
 
       {appointments.length === 0 ? (
-        <p className="text-center text-gray-500">No appointments found.</p>
+        <p className="text-center text-gray-500 mt-10">No appointments found.</p>
       ) : (
-        appointments.map((appointment, index) => (
-          <motion.div
-            key={index}
-            className="grid sm:grid-cols-[1fr_2fr_auto] gap-6 items-center py-6 border-b"
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-200 bg-indigo-50">
-              <img
-                src={appointment.doctorImage}
-                alt={appointment.doctorName}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div>
-              <p className="text-lg font-semibold text-neutral-800">{appointment.doctorName}</p>
-              <p className="text-sm text-gray-500 mb-2">{appointment.specialty}</p>
-              <div className="text-sm text-gray-700">
-                <p className="font-medium text-zinc-700">Address:</p>
-                <p className="text-xs">{appointment.address}</p>
+        <div className="space-y-6">
+          {appointments.map((appointment, index) => (
+            <motion.div
+              key={index}
+              className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 rounded-lg border shadow-sm bg-gray-50"
+              variants={fadeInUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+            >
+              <div className="flex-shrink-0">
+                <img
+                  src={appointment.doctorImage}
+                  alt={appointment.doctorName}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-purple-200"
+                />
               </div>
-              <p className="text-sm mt-3">
-                <span className="text-neutral-700 font-medium">Date & Time:</span>{" "}
-                {new Date(appointment.appointmentDate).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium">Status:</span>{" "}
-                <span
-                  style={{
-                    color: appointment.appointmentStatus === "Cancelled" ? "red" : "inherit",
-                    fontWeight: appointment.appointmentStatus === "Cancelled" ? "bold" : "normal",
-                  }}
-                >
-                  {appointment.appointmentStatus}
-                </span>
-              </p>
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => openModal(appointment)}
-                className="text-sm text-purple-700 border border-purple-500 py-2 rounded hover:bg-purple-700 hover:text-white transition-all duration-300"
-                disabled={appointment.appointmentStatus === "Cancelled"}
-              >
-                Pay Online
-              </button>
-              <button
-                className="text-sm text-red-600 border border-red-500 py-2 rounded hover:bg-red-700 hover:text-white transition-all duration-300"
-                onClick={() => {
-                  setSelectedDoctor(appointment);
-                  setShowCancelModal(true);
-                }}
-                disabled={appointment.appointmentStatus === "Cancelled"}
-              >
-                Cancel Appointment
-              </button>
-            </div>
-          </motion.div>
-        ))
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-gray-800">{appointment.doctorName}</h3>
+                <p className="text-sm text-purple-600 mb-2">{appointment.specialty}</p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Address:</span> {appointment.address}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  <span className="font-medium">Date & Time:</span>{" "}
+                  {new Date(appointment.appointmentDate).toLocaleString()}
+                </p>
+                <p className="text-sm mt-1">
+                  <span className="font-medium">Status:</span>{" "}
+                  <span
+                    className={`font-semibold ${
+                      appointment.appointmentStatus === "Cancelled"
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {appointment.appointmentStatus}
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => openModal(appointment)}
+                  className="w-full sm:w-auto px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded border border-purple-300 hover:bg-purple-700 hover:text-white transition"
+                  disabled={appointment.appointmentStatus === "Cancelled"}
+                >
+                  Pay Online
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedDoctor(appointment);
+                    setShowCancelModal(true);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 text-sm bg-red-100 text-red-700 rounded border border-red-300 hover:bg-red-600 hover:text-white transition"
+                  disabled={appointment.appointmentStatus === "Cancelled"}
+                >
+                  Cancel Appointment
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       )}
 
       {/* Payment Modal */}
       <AnimatePresence>
         {showModal && selectedDoctor && (
           <motion.div
-            className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
             initial="hidden"
             animate="visible"
             exit="hidden"
@@ -205,19 +206,20 @@ const MyAppointments = () => {
               initial="hidden"
               animate="visible"
               exit="hidden"
-              className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md"
+              className="bg-white p-6 rounded-lg shadow-xl w-[90%] max-w-md"
             >
               <h3 className="text-xl font-semibold mb-4 text-purple-700">Payment Details</h3>
-              <p>
-                <span className="font-medium text-gray-700">Doctor:</span> Dr.{" "}
-                {selectedDoctor.doctorName}
-              </p>
-              <p>
-                <span className="font-medium text-gray-700">Amount:</span> $50.00
-              </p>
-              <p>
-                <span className="font-medium text-gray-700">Payment Status:</span> Pending
-              </p>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  <span className="font-medium">Doctor:</span> Dr. {selectedDoctor.doctorName}
+                </p>
+                <p>
+                  <span className="font-medium">Amount:</span> $50.00
+                </p>
+                <p>
+                  <span className="font-medium">Payment Status:</span> Pending
+                </p>
+              </div>
 
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -254,8 +256,19 @@ const MyAppointments = () => {
 
         {/* Cancel Modal */}
         {showCancelModal && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-sm text-center">
+          <motion.div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <motion.div
+              variants={modalVariant}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-sm text-center"
+            >
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Are you sure you want to cancel this appointment?
               </h3>
@@ -273,8 +286,8 @@ const MyAppointments = () => {
                   No, Go Back
                 </button>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
