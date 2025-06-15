@@ -1,24 +1,46 @@
-// components/ChatBox.tsx
 import { useState } from 'react';
 
 const ChatBox = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSend = async () => {
-    const userMessage = { sender: 'user', text: input };
-    setMessages((prev) => [...prev, userMessage]);
+const handleSend = async () => {
+  if (!input.trim()) return;
 
+  const userMessage = { sender: 'user', text: input };
+  setMessages((prev) => [...prev, userMessage]);
+  setInput('');
+  setLoading(true);
+
+  try {
     const response = await fetch('http://localhost:5000/api/assistant', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: input }),
+      body: JSON.stringify({
+        message: input,
+        history: messages.map((msg) => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.text,
+        })),
+      }),
     });
 
     const data = await response.json();
-    setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
-    setInput('');
-  };
+
+    if (response.ok) {
+      setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
+    } else {
+      setMessages((prev) => [...prev, { sender: 'ai', text: '⚠️ Error from server: ' + data.error }]);
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    setMessages((prev) => [...prev, { sender: 'ai', text: '⚠️ Failed to connect to AI server.' }]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="p-6 bg-white rounded-xl shadow-md space-y-4">
@@ -30,10 +52,12 @@ const ChatBox = () => {
             </p>
           </div>
         ))}
+        {loading && <p className="text-left text-sm text-gray-400">AI is typing...</p>}
       </div>
       <div className="flex gap-2">
         <input
           className="flex-1 border border-gray-300 p-2 rounded"
+          placeholder="Describe your symptoms..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />

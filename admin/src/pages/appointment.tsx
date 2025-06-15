@@ -21,7 +21,7 @@ const AppointmentCalendar = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "today" | "month">("all");
+  const [filterType, setFilterType] = useState<"all" | "today" | "month">("today");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

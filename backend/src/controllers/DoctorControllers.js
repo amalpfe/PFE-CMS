@@ -631,6 +631,24 @@ exports.getMedicalRecordsByPatient = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+// في controller أو router
+
+exports.getMedicalRecordsByDoctorAndPatient = async (req, res) => {
+  const { doctorId, patientId } = req.params;
+
+  try {
+    const [records] = await db.execute(
+      `SELECT * FROM medicalrecord WHERE doctorId = ? AND patientId = ? ORDER BY recordDate DESC`,
+      [doctorId, patientId]
+    );
+
+    res.status(200).json(records);
+  } catch (error) {
+    console.error("Error fetching medical records:", error);
+    res.status(500).json({ message: "Failed to fetch medical records." });
+  }
+};
+
 
 
 

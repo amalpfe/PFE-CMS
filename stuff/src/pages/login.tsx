@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const Login = () => {
-  const [role, setRole] = useState<"Admin" | "Doctor">("Admin");
+const StaffLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -11,41 +10,25 @@ const Login = () => {
 
   const navigate = useNavigate();
 
-  const toggleRole = () => {
-    setRole((prev) => (prev === "Admin" ? "Doctor" : "Admin"));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
 
     try {
-      const endpoint =
-        role === "Admin"
-          ? "http://localhost:5000/admin/login"
-          : "http://localhost:5000/doctor/login";
-
-      const response = await axios.post(endpoint, {
+      const response = await axios.post("http://localhost:5000/staff/login", {
         email,
         password,
       });
 
-      const { token, role: returnedRole, admin, doctor } = response.data;
+      const { token, staff } = response.data;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("role", returnedRole);
+      localStorage.setItem("role", "Staff");
+      localStorage.setItem("staff", JSON.stringify(staff));
+      localStorage.setItem("staffId", staff.id.toString());
 
-      if (returnedRole === "Admin") {
-        localStorage.setItem("user", JSON.stringify(admin));
-        navigate("/admin/dashboard");
-      } else {
-        localStorage.setItem("user", JSON.stringify(doctor)); // optional
-        localStorage.setItem("doctor", JSON.stringify(doctor)); // ✅ هذا المهم
-        localStorage.setItem("doctorId", doctor.id.toString()); // ✅ This fixes your issue
-        navigate("/doctor/dashboard");
-      }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      navigate("/staff/dashboard");
     } catch (error: any) {
       if (error.response && error.response.data?.message) {
         setMessage(error.response.data.message);
@@ -65,7 +48,7 @@ const Login = () => {
       >
         <div className="mb-6 text-center">
           <p className="text-2xl font-semibold text-purple-600">
-            <span className="font-bold">{role}</span> Login
+            <span className="font-bold">Staff</span> Login
           </p>
         </div>
 
@@ -80,7 +63,7 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-2 border border-purple-600 rounded-lg"
-            placeholder={`${role.toLowerCase()}@example.com`}
+            placeholder="staff@example.com"
           />
         </div>
 
@@ -110,18 +93,9 @@ const Login = () => {
         {message && (
           <p className="mt-4 text-center text-sm text-red-600">{message}</p>
         )}
-
-        <div className="mt-4 text-center">
-          <p className="text-sm text-purple-600">
-            {role === "Admin" ? "Doctor" : "Admin"} Login?{" "}
-            <button type="button" onClick={toggleRole} className="underline font-medium">
-              Click here
-            </button>
-          </p>
-        </div>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default StaffLogin;

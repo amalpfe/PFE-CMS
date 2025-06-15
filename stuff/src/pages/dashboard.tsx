@@ -1,5 +1,16 @@
-const Dashboard = () => {
-  return <div>Appointment Management Coming Soon</div>;
-};
 
-export default Dashboard;
+
+import React from 'react'
+import Layout from "../components/Layout";
+
+const dashboard = () => {
+  return (
+    <Layout>
+    <div>
+      
+    </div>
+    </Layout>
+  )
+}
+
+export default dashboard

@@ -1,27 +1,19 @@
 import { Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
 import Dashboard from './pages/dashboard';
 import Login from './pages/login'; // Import Login page
 
 function App() {
   return (
+      <div className="min-h-screen w-full bg-gray-50"> 
     <Routes>
       {/* Public route */}
-      <Route path="/login" element={<Login />} />
 
       {/* Protected routes wrapped in Layout */}
-      <Route
-        path="/"
-        element={<Layout><Dashboard /></Layout>}
-      />
-      <Route
-        path="/dashboard"
-        element={<Layout><Dashboard /></Layout>}
-      />
+      <Route path="/" element={<Login />}/>
+      <Route path="/staff/dashboard" element={<Dashboard />}/>
       
-      {/* Example for appointments page */}
-      {/* <Route path="/appointments" element={<Layout><Appointments /></Layout>} /> */}
     </Routes>
+    </div>
   );
 }
 

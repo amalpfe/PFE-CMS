@@ -25,7 +25,7 @@ export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "today" | "month">("all");
+  const [filterType, setFilterType] = useState<"all" | "today" | "month">("today");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -218,8 +218,8 @@ export default function DoctorAppointmentsPage() {
             onChange={(val) => setFilterType(val)}
             className="w-full md:w-1/4"
           >
-            <Option value="all">All</Option>
             <Option value="today">Today</Option>
+            <Option value="all">All</Option>
             <Option value="month">This Month</Option>
           </Select>
         </div>
