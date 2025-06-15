@@ -21,8 +21,7 @@ exports.loginStaff = async (req, res) => {
     // const isMatch = await bcrypt.compare(password, staff.passwordHash);
 
     // لو حابب تجربة بدون تشفير مؤقتًا (غير مستحسن للأمان)، استخدم:
-    const isMatch = (password === staff.passwordHash);
-
+    const isMatch = await bcrypt.compare(password, staff.passwordHash);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
@@ -45,5 +44,82 @@ exports.loginStaff = async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getTotalAppointmentsToday = async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      "SELECT COUNT(*) AS count FROM appointment WHERE DATE(appointmentDate) = CURDATE()"
+    );
+    res.json({ totalAppointmentsToday: rows[0].count });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.getCheckedInPatients = async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      "SELECT COUNT(*) AS count FROM appointment WHERE appointmentStatus = 'Completed' AND DATE(appointmentDate) = CURDATE()"
+    );
+    res.json({ checkedInPatients: rows[0].count });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.getPendingPayments = async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      "SELECT COUNT(*) AS count FROM billing WHERE paymentStatus = 'Pending'"
+    );
+    res.json({ pendingPayments: rows[0].count });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.getUpcomingAppointments = async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      "SELECT COUNT(*) AS count FROM appointment WHERE appointmentDate > NOW()"
+    );
+    res.json({ upcomingAppointments: rows[0].count });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.getAvailableDoctors = async (req, res) => {
+  try {
+    // Join doctoravailability with doctors table to get doctor name
+    const [rows] = await db.execute(`
+      SELECT 
+        da.id,
+        da.doctorId,
+        d.firstName,
+        d.lastName,
+        da.dayOfWeek,
+        da.startTime,
+        da.endTime
+      FROM doctoravailability da
+      JOIN doctor d ON da.doctorId = d.id
+    `);
+
+    // Format the name as "First Last"
+    const doctorAvailability = rows.map(row => ({
+      id: row.id,
+      doctorId: row.doctorId,
+      doctorName: `${row.firstName} ${row.lastName}`,
+      dayOfWeek: row.dayOfWeek,
+      startTime: row.startTime,
+      endTime: row.endTime,
+    }));
+
+    res.json({ doctorAvailability });
+  } catch (error) {
+    console.error("Error fetching available doctors:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
