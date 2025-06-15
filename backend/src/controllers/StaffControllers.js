@@ -123,3 +123,132 @@ exports.getAvailableDoctors = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+
+// Create appointment
+exports.getDoctorAvailability = async (req, res) => {
+  const { doctorId } = req.params;
+  try {
+    const [rows] = await db.execute(
+      `SELECT id, dayOfWeek, startTime, endTime
+       FROM doctoravailability
+       WHERE doctorId = ?`,
+      [doctorId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch doctor availability' });
+  }
+};
+
+
+// Get all appointments (optional filters: patientId, doctorId, status)
+exports.getAppointments = async (req, res) => {
+  try {
+    const { patientId, doctorId, status } = req.query;
+
+    let query = `
+      SELECT 
+        a.*, 
+        CONCAT(p.firstName, ' ', p.lastName) AS patientName,
+        CONCAT(d.firstName, ' ', d.lastName) AS doctorName
+      FROM appointment a
+      LEFT JOIN patient p ON a.patientId = p.id
+      LEFT JOIN doctor d ON a.doctorId = d.id
+      WHERE 1=1
+    `;
+
+    const params = [];
+
+    if (patientId) {
+      query += ' AND a.patientId = ?';
+      params.push(patientId);
+    }
+    if (doctorId) {
+      query += ' AND a.doctorId = ?';
+      params.push(doctorId);
+    }
+    if (status) {
+      query += ' AND a.appointmentStatus = ?';
+      params.push(status);
+    }
+
+    const [rows] = await db.execute(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch appointments' });
+  }
+};
+
+
+
+// Get appointment by IDs
+exports. getAppointmentById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.execute('SELECT * FROM appointment WHERE id = ?', [id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Appointment not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch appointment' });
+  }
+};
+
+// Update appointment (reschedule, check-in, cancel, notes)
+exports.updateAppointment = async (req, res) => {
+  const { id } = req.params;
+  const { appointmentDate, appointmentStatus, notes } = req.body;
+  try {
+    const [result] = await db.execute(
+      `UPDATE appointment SET 
+        appointmentDate = COALESCE(?, appointmentDate),
+        appointmentStatus = COALESCE(?, appointmentStatus),
+        notes = COALESCE(?, notes),
+        updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [appointmentDate, appointmentStatus, notes, id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Appointment not found' });
+    res.json({ message: 'Appointment updated' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update appointment' });
+  }
+};
+
+// Delete (cancel) appointment
+exports.deleteAppointment = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await db.execute('DELETE FROM appointment WHERE id = ?', [id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Appointment not found' });
+    res.json({ message: 'Appointment cancelled' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to cancel appointment' });
+  }
+};
+
+exports.getPatients = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT id,firstname FROM patient');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching patients' });
+  }
+};
+
+exports.getDoctors = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT id, firstname FROM doctor');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching doctors' });
+  }
+};
+

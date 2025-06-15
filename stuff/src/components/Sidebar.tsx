@@ -21,7 +21,7 @@ const Sidebar: FC = () => {
           Dashboard
         </Link>
 
-        <Link to="/appointments" 
+        <Link to="/staff/appointments" 
        className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
           <img src={appointmentIcon} alt="Appointments" className="w-6 h-6 mr-4" />
           Appointments

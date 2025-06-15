@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { Calendar, type Event } from "react-big-calendar";
+import { Calendar } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { localizer } from "../utils/localizer";
 
@@ -29,6 +29,12 @@ const dayOfWeekMap: Record<string, number> = {
   Friday: 5,
   Saturday: 6,
 };
+interface CalendarEvent {
+  title: string;
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+}
 
 const Dashboard = () => {
   const [totalAppointmentsToday, setTotalAppointmentsToday] = useState<number | null>(null);
@@ -36,7 +42,7 @@ const Dashboard = () => {
   const [pendingPayments, setPendingPayments] = useState<number | null>(null);
   const [upcomingAppointments, setUpcomingAppointments] = useState<number | null>(null);
   const [availableDoctors, setAvailableDoctors] = useState<DoctorAvailability[] | null>(null);
-  const [calendarEvents, setCalendarEvents] = useState<Event[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
     const fetchStat = async (url: string, setter: React.Dispatch<React.SetStateAction<number | null>>) => {
@@ -62,7 +68,7 @@ const Dashboard = () => {
 
         // Generate calendar events
         const today = new Date();
-        const events: Event[] = data.map((slot) => {
+        const events: CalendarEvent[] = data.map((slot) => {
           const dayOffset = (dayOfWeekMap[slot.dayOfWeek] - today.getDay() + 7) % 7;
           const date = new Date(today);
           date.setDate(today.getDate() + dayOffset);
@@ -144,13 +150,31 @@ const Dashboard = () => {
         <div className="bg-white shadow rounded p-6">
           <h2 className="text-xl font-semibold mb-4">Doctor Availability Calendar</h2>
           <div className="h-[500px]">
-            <Calendar
-              localizer={localizer}
-              events={calendarEvents}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: "100%", width: "100%" }}
-            />
+          <Calendar
+  localizer={localizer}
+  events={calendarEvents}
+  startAccessor="start"
+  endAccessor="end"
+  style={{ height: "100%", width: "100%" }}
+  selectable={true} // <--- Required for clicking empty slots
+  onSelectSlot={(slotInfo) => {
+    const selectedDate = slotInfo.start;
+    const filteredEvents = calendarEvents.filter(event => {
+      return (
+        event.start.toDateString() === selectedDate.toDateString()
+      );
+    });
+    alert(
+      filteredEvents.length > 0
+        ? `Doctors on ${selectedDate.toDateString()}:\n` + filteredEvents.map(e => e.title).join("\n")
+        : `No doctors available on ${selectedDate.toDateString()}`
+    );
+  }}
+  onSelectEvent={(event) => {
+    alert(`Selected: ${event.title}\nTime: ${event.start.toLocaleTimeString()} - ${event.end.toLocaleTimeString()}`);
+  }}
+/>
+
           </div>
         </div>
       </div>
