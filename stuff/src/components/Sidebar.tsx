@@ -13,7 +13,7 @@ const Sidebar: FC = () => {
  
 
   return (
-    <aside className="w-64 bg-purple-50 border-r border-purple-200 shadow-sm h-screen p-4">
+    <aside>
       <div className="flex flex-col space-y-6">
         <Link to="/staff/dashboard"
         className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">

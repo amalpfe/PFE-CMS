@@ -12,7 +12,7 @@ const Navbar: FC = () => {
     localStorage.removeItem("staffId");
 
     // Navigate to login page
-    navigate("/staff-login");
+    navigate("/");
   };
 
   return (

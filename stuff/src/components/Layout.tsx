@@ -1,20 +1,22 @@
-import type { FC, ReactNode } from 'react';
-import Sidebar from './Sidebar';
-import Navbar from './Navbar';
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-const Layout: FC<LayoutProps> = ({ children }) => {
+const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-purple-50">
-      <Sidebar />
-      <div className="flex flex-col flex-1 w-full">
-        <Navbar />
-        <main className="flex-1 overflow-y-auto p-6">
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      {/* Navbar */}
+      <Navbar />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-64 bg-purple-600 text-white p-6 flex flex-col shadow-lg">
+          <Sidebar />
+        </div>
+
+        {/* Main content with scroll */}
+        <div className="flex-1 p-6 overflow-y-auto">
           {children}
-        </main>
+        </div>
       </div>
     </div>
   );

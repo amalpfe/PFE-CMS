@@ -8,7 +8,7 @@ import peopleIcon from "../assets/people_icon.svg";
 
 const Sidebar = () => {
   return (
-      <aside className="w-64 bg-purple-50 border-r border-purple-200 shadow-sm h-screen p-4">
+      <aside>
       {/* Sidebar links */}
       <div className="flex flex-col space-y-6">
         <Link
