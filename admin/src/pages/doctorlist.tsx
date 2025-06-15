@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Input, Button, Modal, Form, Space, Image, Typography, message } from "antd";
-import { EditOutlined, DeleteOutlined, EyeOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import {
+  Table,
+  Input,
+  Button,
+  Modal,
+  Form,
+  Space,
+  Image,
+  Typography,
+  message,
+  Select,
+} from "antd";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
 import Layout from "../components/Layout";
 
 const { Search } = Input;
 const { Title, Text } = Typography;
 const { confirm } = Modal;
+const { Option } = Select;
 
 interface Doctor {
   id: string;
@@ -29,12 +46,12 @@ const DoctorList = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>("");
 
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [viewingDoctor, setViewingDoctor] = useState<Doctor | null>(null);
   const [form] = Form.useForm();
 
-  // Fetch doctors data
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -50,18 +67,25 @@ const DoctorList = () => {
     fetchDoctors();
   }, []);
 
-  // Filter doctors by search term
+  // استخراج جميع الاختصاصات المتوفرة (بدون تكرار)
+  const specialties = Array.from(
+    new Set(doctors.map((doc) => doc.specialty))
+  ).sort();
+
   const filteredDoctors = doctors.filter((doctor) => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       doctor.firstName.toLowerCase().includes(term) ||
       doctor.lastName.toLowerCase().includes(term) ||
       doctor.email.toLowerCase().includes(term) ||
-      doctor.specialty.toLowerCase().includes(term)
-    );
+      doctor.specialty.toLowerCase().includes(term);
+    const matchesSpecialty = selectedSpecialty
+      ? doctor.specialty === selectedSpecialty
+      : true;
+
+    return matchesSearch && matchesSpecialty;
   });
 
-  // Confirm delete modal
   const showDeleteConfirm = (doctor: Doctor) => {
     confirm({
       title: `Are you sure you want to delete Dr. ${doctor.firstName} ${doctor.lastName}?`,
@@ -75,7 +99,6 @@ const DoctorList = () => {
     });
   };
 
-  // Delete doctor handler
   const handleDeleteDoctor = async (id: string) => {
     try {
       await axios.delete(`http://localhost:5000/admin/doctors/${id}`);
@@ -86,7 +109,6 @@ const DoctorList = () => {
     }
   };
 
-  // Edit modal open
   const openEditModal = (doctor: Doctor) => {
     setEditingDoctor(doctor);
     form.setFieldsValue({
@@ -99,13 +121,15 @@ const DoctorList = () => {
     });
   };
 
-  // Edit modal submit
   const handleEditSubmit = async () => {
     try {
       const values = await form.validateFields();
       if (!editingDoctor) return;
 
-      const response = await axios.put(`http://localhost:5000/admin/doctors/${editingDoctor.id}`, values);
+      const response = await axios.put(
+        `http://localhost:5000/admin/doctors/${editingDoctor.id}`,
+        values
+      );
       setDoctors((prev) =>
         prev.map((doc) => (doc.id === editingDoctor.id ? response.data : doc))
       );
@@ -117,7 +141,6 @@ const DoctorList = () => {
     }
   };
 
-  // Columns for antd Table
   const columns = [
     {
       title: "Image",
@@ -139,7 +162,8 @@ const DoctorList = () => {
       title: "Name",
       dataIndex: "firstName",
       key: "name",
-      render: (_: any, record: Doctor) => `${record.firstName} ${record.lastName}`,
+      render: (_: any, record: Doctor) =>
+        `${record.firstName} ${record.lastName}`,
       sorter: (a: Doctor, b: Doctor) => a.firstName.localeCompare(b.firstName),
       width: 180,
     },
@@ -164,7 +188,8 @@ const DoctorList = () => {
       dataIndex: "fees",
       key: "fees",
       render: (fees: string) => `$${fees}`,
-      sorter: (a: Doctor, b: Doctor) => Number(a.fees) - Number(b.fees),
+      sorter: (a: Doctor, b: Doctor) =>
+        Number(a.fees || 0) - Number(b.fees || 0),
       width: 100,
     },
     {
@@ -175,7 +200,6 @@ const DoctorList = () => {
           <Button
             icon={<EyeOutlined />}
             onClick={() => setViewingDoctor(record)}
-            type="default"
           />
           <Button
             icon={<EditOutlined />}
@@ -200,15 +224,31 @@ const DoctorList = () => {
           Doctor List
         </Title>
 
-        <Search
-          placeholder="Search by name, email, or specialty..."
-          allowClear
-          enterButton="Search"
-          size="middle"
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ marginBottom: 16, maxWidth: 400 }}
-          value={searchTerm}
-        />
+        <Space style={{ marginBottom: 16 }} wrap>
+          <Search
+            placeholder="Search by name, email, or specialty..."
+            allowClear
+            enterButton
+            size="middle"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchTerm}
+            style={{ maxWidth: 300 }}
+          />
+
+          <Select
+            placeholder="Filter by specialty"
+            allowClear
+            style={{ minWidth: 200 }}
+            value={selectedSpecialty || undefined}
+            onChange={(value) => setSelectedSpecialty(value || "")}
+          >
+            {specialties.map((spec) => (
+              <Option key={spec} value={spec}>
+                {spec}
+              </Option>
+            ))}
+          </Select>
+        </Space>
 
         <Table
           rowKey="id"
@@ -220,10 +260,10 @@ const DoctorList = () => {
           scroll={{ x: 900 }}
         />
 
-        {/* Edit Doctor Modal */}
+        {/* Edit Modal */}
         <Modal
           title={`Edit Doctor: ${editingDoctor?.firstName} ${editingDoctor?.lastName}`}
-          visible={!!editingDoctor}
+          open={!!editingDoctor}
           onOk={handleEditSubmit}
           onCancel={() => {
             setEditingDoctor(null);
@@ -233,12 +273,7 @@ const DoctorList = () => {
           cancelText="Cancel"
           destroyOnClose
         >
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={editingDoctor || {}}
-            preserve={false}
-          >
+          <Form form={form} layout="vertical">
             <Form.Item
               name="firstName"
               label="First Name"
@@ -246,7 +281,6 @@ const DoctorList = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               name="lastName"
               label="Last Name"
@@ -254,7 +288,6 @@ const DoctorList = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               name="specialty"
               label="Specialty"
@@ -262,18 +295,16 @@ const DoctorList = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               name="email"
               label="Email"
               rules={[
                 { required: true, message: "Please enter email" },
-                { type: "email", message: "Please enter a valid email" },
+                { type: "email", message: "Invalid email" },
               ]}
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               name="phoneNumber"
               label="Phone Number"
@@ -281,7 +312,6 @@ const DoctorList = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               name="fees"
               label="Fees"
@@ -292,16 +322,16 @@ const DoctorList = () => {
           </Form>
         </Modal>
 
-        {/* View Doctor Modal */}
+        {/* View Modal */}
         <Modal
           title={`Doctor Profile: ${viewingDoctor?.firstName} ${viewingDoctor?.lastName}`}
-          visible={!!viewingDoctor}
+          open={!!viewingDoctor}
+          onCancel={() => setViewingDoctor(null)}
           footer={[
             <Button key="close" onClick={() => setViewingDoctor(null)}>
               Close
             </Button>,
           ]}
-          onCancel={() => setViewingDoctor(null)}
           width={600}
           destroyOnClose
         >
@@ -311,53 +341,45 @@ const DoctorList = () => {
                 width={150}
                 height={150}
                 src={viewingDoctor.image || "https://via.placeholder.com/150"}
-                alt={`${viewingDoctor.firstName} ${viewingDoctor.lastName}`}
+                alt="doctor"
                 style={{ borderRadius: 8 }}
                 preview={false}
               />
               <div style={{ flex: 1 }}>
                 <Text>
-                  <strong>Name: </strong>
-                  {viewingDoctor.firstName} {viewingDoctor.lastName}
+                  <strong>Name:</strong> {viewingDoctor.firstName} {viewingDoctor.lastName}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Specialty: </strong>
-                  {viewingDoctor.specialty}
+                  <strong>Specialty:</strong> {viewingDoctor.specialty}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Email: </strong>
-                  {viewingDoctor.email}
+                  <strong>Email:</strong> {viewingDoctor.email}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Phone: </strong>
-                  {viewingDoctor.phoneNumber}
+                  <strong>Phone:</strong> {viewingDoctor.phoneNumber}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Degree: </strong>
-                  {viewingDoctor.degree}
+                  <strong>Degree:</strong> {viewingDoctor.degree}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Fees: </strong>${viewingDoctor.fees}
+                  <strong>Fees:</strong> ${viewingDoctor.fees}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Experience: </strong>
-                  {viewingDoctor.experience}
+                  <strong>Experience:</strong> {viewingDoctor.experience}
                 </Text>
                 <br />
                 <Text>
-                  <strong>Address: </strong>
-                  {viewingDoctor.address}
+                  <strong>Address:</strong> {viewingDoctor.address}
                 </Text>
                 <br />
                 <Text>
-                  <strong>About: </strong>
-                  {viewingDoctor.about}
+                  <strong>About:</strong> {viewingDoctor.about}
                 </Text>
               </div>
             </Space>

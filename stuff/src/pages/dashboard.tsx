@@ -3,12 +3,12 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { Calendar } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { localizer } from "../utils/localizer";
+import { localizer } from "../utils/localizer"; // تأكد من هذا الملف موجود ومهيأ بالmoment أو date-fns
 
 type DoctorAvailability = {
   id: number;
   doctorId: number;
-  doctorName: string; // Make sure this is provided from the backend
+  doctorName: string;
   dayOfWeek: string;
   startTime: string;
   endTime: string;
@@ -20,6 +20,13 @@ type DoctorGroupedAvailability = {
   availabilities: DoctorAvailability[];
 };
 
+interface CalendarEvent {
+  title: string;
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+}
+
 const dayOfWeekMap: Record<string, number> = {
   Sunday: 0,
   Monday: 1,
@@ -29,12 +36,6 @@ const dayOfWeekMap: Record<string, number> = {
   Friday: 5,
   Saturday: 6,
 };
-interface CalendarEvent {
-  title: string;
-  start: Date;
-  end: Date;
-  allDay?: boolean;
-}
 
 const Dashboard = () => {
   const [totalAppointmentsToday, setTotalAppointmentsToday] = useState<number | null>(null);
@@ -45,20 +46,25 @@ const Dashboard = () => {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
-    const fetchStat = async (url: string, setter: React.Dispatch<React.SetStateAction<number | null>>) => {
+    // دالة مساعدة لقراءة القيمة حسب اسم الحقل الصحيح من الريسبونس
+    const fetchStat = async (
+      url: string,
+      field: string,
+      setter: React.Dispatch<React.SetStateAction<number | null>>
+    ) => {
       try {
         const response = await axios.get(url);
-        setter(response.data.count);
+        setter(response.data[field]);
       } catch (error) {
         console.error(`Error fetching ${url}`, error);
         setter(null);
       }
     };
 
-    fetchStat("http://localhost:5000/staff/total-appointments-today", setTotalAppointmentsToday);
-    fetchStat("http://localhost:5000/staff/checked-in-patients", setCheckedInPatients);
-    fetchStat("http://localhost:5000/staff/pending-payments", setPendingPayments);
-    fetchStat("http://localhost:5000/staff/upcoming-appointments", setUpcomingAppointments);
+    fetchStat("http://localhost:5000/staff/total-appointments-today", "totalAppointmentsToday", setTotalAppointmentsToday);
+    fetchStat("http://localhost:5000/staff/checked-in-patients", "checkedInPatients", setCheckedInPatients);
+    fetchStat("http://localhost:5000/staff/pending-payments", "pendingPayments", setPendingPayments);
+    fetchStat("http://localhost:5000/staff/upcoming-appointments", "upcomingAppointments", setUpcomingAppointments);
 
     const fetchAvailableDoctors = async () => {
       try {
@@ -66,7 +72,6 @@ const Dashboard = () => {
         const data: DoctorAvailability[] = response.data.doctorAvailability;
         setAvailableDoctors(data);
 
-        // Generate calendar events
         const today = new Date();
         const events: CalendarEvent[] = data.map((slot) => {
           const dayOffset = (dayOfWeekMap[slot.dayOfWeek] - today.getDay() + 7) % 7;
@@ -77,10 +82,10 @@ const Dashboard = () => {
           const [endHour, endMinute] = slot.endTime.split(":").map(Number);
 
           const start = new Date(date);
-          start.setHours(startHour, startMinute);
+          start.setHours(startHour, startMinute, 0);
 
           const end = new Date(date);
-          end.setHours(endHour, endMinute);
+          end.setHours(endHour, endMinute, 0);
 
           return {
             title: `Dr. ${slot.doctorName}`,
@@ -100,20 +105,6 @@ const Dashboard = () => {
     fetchAvailableDoctors();
   }, []);
 
-  const groupedDoctors: Record<number, DoctorGroupedAvailability> = {};
-
-  availableDoctors?.forEach((item) => {
-    if (!groupedDoctors[item.doctorId]) {
-      groupedDoctors[item.doctorId] = {
-        doctorId: item.doctorId,
-        doctorName: item.doctorName,
-        availabilities: [],
-      };
-    }
-    groupedDoctors[item.doctorId].availabilities.push(item);
-  });
-
- 
   const renderCount = (count: number | null) => (count === null ? "Loading..." : count);
 
   return (
@@ -144,37 +135,32 @@ const Dashboard = () => {
           </div>
         </div>
 
-       
-
         {/* Calendar */}
         <div className="bg-white shadow rounded p-6">
           <h2 className="text-xl font-semibold mb-4">Doctor Availability Calendar</h2>
           <div className="h-[500px]">
-          <Calendar
-  localizer={localizer}
-  events={calendarEvents}
-  startAccessor="start"
-  endAccessor="end"
-  style={{ height: "100%", width: "100%" }}
-  selectable={true} // <--- Required for clicking empty slots
-  onSelectSlot={(slotInfo) => {
-    const selectedDate = slotInfo.start;
-    const filteredEvents = calendarEvents.filter(event => {
-      return (
-        event.start.toDateString() === selectedDate.toDateString()
-      );
-    });
-    alert(
-      filteredEvents.length > 0
-        ? `Doctors on ${selectedDate.toDateString()}:\n` + filteredEvents.map(e => e.title).join("\n")
-        : `No doctors available on ${selectedDate.toDateString()}`
-    );
-  }}
-  onSelectEvent={(event) => {
-    alert(`Selected: ${event.title}\nTime: ${event.start.toLocaleTimeString()} - ${event.end.toLocaleTimeString()}`);
-  }}
-/>
-
+            <Calendar
+              localizer={localizer}
+              events={calendarEvents}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: "100%", width: "100%" }}
+              selectable={true}
+              onSelectSlot={(slotInfo) => {
+                const selectedDate = slotInfo.start;
+                const filteredEvents = calendarEvents.filter(event =>
+                  event.start.toDateString() === selectedDate.toDateString()
+                );
+                alert(
+                  filteredEvents.length > 0
+                    ? `Doctors on ${selectedDate.toDateString()}:\n` + filteredEvents.map(e => e.title).join("\n")
+                    : `No doctors available on ${selectedDate.toDateString()}`
+                );
+              }}
+              onSelectEvent={(event) => {
+                alert(`Selected: ${event.title}\nTime: ${event.start.toLocaleTimeString()} - ${event.end.toLocaleTimeString()}`);
+              }}
+            />
           </div>
         </div>
       </div>

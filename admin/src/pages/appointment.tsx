@@ -135,7 +135,7 @@ const AppointmentCalendar = () => {
       title: "Action",
       key: "action",
       render: (_: any, record: Appointment) =>
-        record.appointmentStatus !== "Cancelled" ? (
+        record.appointmentStatus === "Scheduled" ? (
           <Button
             danger
             type="link"

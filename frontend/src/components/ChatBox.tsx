@@ -1,72 +1,86 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import axios from 'axios';
 
-const ChatBox = () => {
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
-  const [input, setInput] = useState('');
+const SymptomChecker = ({ onSpecialtyFound }) => {
+  const [symptoms, setSymptoms] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
-const handleSend = async () => {
-  if (!input.trim()) return;
-
-  const userMessage = { sender: 'user', text: input };
-  setMessages((prev) => [...prev, userMessage]);
-  setInput('');
-  setLoading(true);
-
-  try {
-    const response = await fetch('http://localhost:5000/api/assistant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: input,
-        history: messages.map((msg) => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text,
-        })),
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
-    } else {
-      setMessages((prev) => [...prev, { sender: 'ai', text: '⚠️ Error from server: ' + data.error }]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!symptoms.trim()) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await axios.post(
+        'http://localhost:5000/api/analyze-symptoms', 
+        { symptoms }
+      );
+      
+      onSpecialtyFound(response.data.specialty);
+    } catch (err) {
+      setError('Failed to analyze symptoms. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Fetch error:", err);
-    setMessages((prev) => [...prev, { sender: 'ai', text: '⚠️ Failed to connect to AI server.' }]);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-md space-y-4">
-      <div className="h-64 overflow-y-scroll space-y-2">
-        {messages.map((msg, i) => (
-          <div key={i} className={msg.sender === 'user' ? 'text-right' : 'text-left'}>
-            <p className={`inline-block px-4 py-2 rounded-lg ${msg.sender === 'user' ? 'bg-purple-100' : 'bg-gray-200'}`}>
-              {msg.text}
-            </p>
-          </div>
-        ))}
-        {loading && <p className="text-left text-sm text-gray-400">AI is typing...</p>}
-      </div>
-      <div className="flex gap-2">
-        <input
-          className="flex-1 border border-gray-300 p-2 rounded"
-          placeholder="Describe your symptoms..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+    <div className="symptom-checker">
+      <h3>Describe Your Symptoms</h3>
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={symptoms}
+          onChange={(e) => {
+            setSymptoms(e.target.value);
+            setError('');
+          }}
+          placeholder="Example: I've had chest pain and shortness of breath for 2 days"
+          rows={4}
+          disabled={loading}
+          aria-label="Describe your symptoms"
         />
-        <button className="bg-purple-700 text-white px-4 py-2 rounded" onClick={handleSend}>
-          Send
+        
+        <button 
+          type="submit" 
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? (
+            <>
+              <span className="spinner"></span>
+              Analyzing...
+            </>
+          ) : 'Suggest Specialist'}
         </button>
+        
+        {error && (
+          <p className="error" role="alert">
+            ⚠️ {error}
+          </p>
+        )}
+        
+        {success && (
+          <p className="success" role="status">
+            ✓ Analysis complete
+          </p>
+        )}
+      </form>
+      
+      <div className="disclaimer">
+        <small>
+          <strong>Note:</strong> AI suggestions are preliminary. 
+          Always consult with a medical professional for diagnosis.
+        </small>
       </div>
     </div>
   );
 };
 
-export default ChatBox;
+export default SymptomChecker;
+
+

@@ -149,44 +149,49 @@ const getDoctorDetails = async (req, res) => {
   }
 };
 const handleApp = async (req, res) => {
-  const { patientId, doctorId, appointmentDate } = req.body;
-
-  if (!patientId || !doctorId || !appointmentDate) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+    const { patientId, doctorId, appointmentDate } = req.body;
 
   try {
-    // Step 1: Check if an appointment already exists at that datetime for this doctor
-    const [existingAppointments] = await pool.execute(
-      `SELECT * FROM appointment 
-       WHERE doctorId = ? AND appointmentDate = ?`,
+    // Step 1: Check if slot already exists
+    const [existing] = await db.execute(
+      "SELECT * FROM appointment WHERE doctorId = ? AND appointmentDate = ?",
       [doctorId, appointmentDate]
     );
 
-    if (existingAppointments.length > 0) {
-      return res.status(400).json({
-        error: "This appointment slot is already booked. Please choose another time.",
-      });
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "This time slot is already booked." });
     }
 
-    // Step 2: Insert the new appointment
-    const [result] = await pool.execute(
-      `INSERT INTO appointment 
-       (patientId, doctorId, appointmentDate, appointmentStatus, createdAt, updatedAt) 
-       VALUES (?, ?, ?, 'Scheduled', NOW(), NOW())`,
+    // Step 2: Insert appointment
+    const [appointmentResult] = await db.execute(
+      `INSERT INTO appointment (patientId, doctorId, appointmentDate, appointmentStatus)
+       VALUES (?, ?, ?, 'Scheduled')`,
       [patientId, doctorId, appointmentDate]
     );
 
-    res.status(201).json({
-      message: "Appointment booked successfully",
-      appointmentId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error booking appointment:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    const appointmentId = appointmentResult.insertId;
+
+    // Step 3: Get doctor's fee to calculate billing amount
+    const [doctorData] = await db.execute(
+      "SELECT fees FROM doctor WHERE id = ?",
+      [doctorId]
+    );
+
+    const amount = doctorData[0]?.fees ?? 0;
+
+    // Step 4: Insert into billing
+    await db.execute(
+      `INSERT INTO billing (patientId, appointmentId, amount, paymentStatus, paymentMethod, createdAt)
+       VALUES (?, ?, ?, 'Pending', 'Card', NOW())`,
+      [patientId, appointmentId, amount]
+    );
+
+    return res.status(201).json({ message: "Appointment and billing created successfully." });
+  } catch (err) {
+    console.error("Booking error:", err);
+    return res.status(500).json({ message: "Something went wrong." });
   }
 };
-
 
 const addReview = async (req, res) => {
   try {

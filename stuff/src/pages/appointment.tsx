@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
+import { Select, Input, Button, message } from "antd";
+import type { SelectProps } from "antd";
+
+const { Option } = Select;
 
 type Appointment = {
   appointmentDate: string | number | Date;
   id: number;
   patientId?: number;
   doctorId?: number;
-  patientName: string;
-  doctorName: string;
   appointmentStatus: string;
   notes?: string;
 };
@@ -50,8 +52,7 @@ const Appointment = () => {
 
       setAppointments(data);
     } catch (err) {
-      alert("Failed to fetch appointments");
-      console.error(err);
+      message.error("Failed to fetch appointments");
     }
   };
 
@@ -60,8 +61,7 @@ const Appointment = () => {
       const res = await axios.get(`${API_BASE}/patients`);
       setPatients(res.data);
     } catch (err) {
-      alert("Failed to fetch patients");
-      console.error(err);
+      message.error("Failed to fetch patients");
     }
   };
 
@@ -70,14 +70,13 @@ const Appointment = () => {
       const res = await axios.get(`${API_BASE}/doctors`);
       setDoctors(res.data);
     } catch (err) {
-      alert("Failed to fetch doctors");
-      console.error(err);
+      message.error("Failed to fetch doctors");
     }
   };
 
   const handleAddAppointment = async () => {
     if (!selectedPatientId || !selectedDoctorId || !newDate) {
-      return alert("Please fill all fields");
+      return message.warning("Please fill all fields");
     }
 
     try {
@@ -87,37 +86,34 @@ const Appointment = () => {
         appointmentDate: newDate,
       });
 
-      alert("Appointment created");
+      message.success("Appointment created");
       fetchAppointments();
       setSelectedPatientId("");
       setSelectedDoctorId("");
       setNewDate("");
     } catch (err) {
-      alert("Failed to create appointment");
-      console.error(err);
+      message.error("Failed to create appointment");
     }
   };
 
-const toggleCheckIn = async (id: number, currentStatus: string) => {
-  const appt = appointments.find((a) => a.id === id);
-  if (!appt) return alert("Appointment not found");
+  const toggleCheckIn = async (id: number, currentStatus: string) => {
+    const appt = appointments.find((a) => a.id === id);
+    if (!appt) return message.error("Appointment not found");
 
-  const newStatus = currentStatus === "Scheduled" ? "Completed" : "Scheduled";
+    const newStatus = currentStatus === "Scheduled" ? "Completed" : "Scheduled";
 
-  try {
-    await axios.put(`${API_BASE}/appointments/${id}`, {
-      appointmentDate: appt.appointmentDate || null,
-      appointmentStatus: newStatus,
-      notes: appt.notes ?? null,
-    });
+    try {
+      await axios.put(`${API_BASE}/appointments/${id}`, {
+        appointmentDate: appt.appointmentDate || null,
+        appointmentStatus: newStatus,
+        notes: appt.notes ?? null,
+      });
 
-    fetchAppointments();
-  } catch (err) {
-    alert("Failed to update appointment status");
-    console.error(err);
-  }
-};
-
+      fetchAppointments();
+    } catch (err) {
+      message.error("Failed to update appointment status");
+    }
+  };
 
   const cancelAppointment = async (id: number) => {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
@@ -126,8 +122,7 @@ const toggleCheckIn = async (id: number, currentStatus: string) => {
       await axios.delete(`${API_BASE}/appointments/${id}`);
       fetchAppointments();
     } catch (err) {
-      alert("Failed to cancel appointment");
-      console.error(err);
+      message.error("Failed to cancel appointment");
     }
   };
 
@@ -135,7 +130,7 @@ const toggleCheckIn = async (id: number, currentStatus: string) => {
     const newDate = prompt("Enter new date/time (YYYY-MM-DDTHH:mm):");
     if (!newDate) return;
     const dateObj = new Date(newDate);
-    if (isNaN(dateObj.getTime())) return alert("Invalid date format");
+    if (isNaN(dateObj.getTime())) return message.warning("Invalid date format");
 
     try {
       await axios.put(`${API_BASE}/appointments/${id}`, {
@@ -143,10 +138,12 @@ const toggleCheckIn = async (id: number, currentStatus: string) => {
       });
       fetchAppointments();
     } catch (err) {
-      alert("Failed to reschedule appointment");
-      console.error(err);
+      message.error("Failed to reschedule appointment");
     }
   };
+
+  const getPatientName = (id?: number) => patients.find((p) => p.id === id)?.name || "N/A";
+  const getDoctorName = (id?: number) => doctors.find((d) => d.id === id)?.name || "N/A";
 
   return (
     <Layout>
@@ -156,46 +153,54 @@ const toggleCheckIn = async (id: number, currentStatus: string) => {
         <div className="mb-6 bg-white shadow rounded p-6">
           <h2 className="text-xl font-semibold mb-4">➕ Schedule New Appointment</h2>
 
-         <select
-  value={selectedPatientId}
-  onChange={(e) => setSelectedPatientId(Number(e.target.value) || "")}
-  className="border rounded px-3 py-2 mr-2 text-black bg-white"
->
-  <option value="">Select Patient</option>
-  {patients.map((p) => (
-    <option key={p.id} value={p.id}>
-      {p.name}
-    </option>
-  ))}
-</select>
+          <div className="flex flex-wrap gap-4 items-center mb-4">
+            <Select
+              showSearch
+              placeholder="Select Patient"
+              optionFilterProp="children"
+              value={selectedPatientId || undefined}
+              onChange={(value) => setSelectedPatientId(value)}
+              style={{ minWidth: 200 }}
+              filterOption={(input, option) =>
+                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {patients.map((p) => (
+                <Option key={p.id} value={p.id}>
+                  {p.name}
+                </Option>
+              ))}
+            </Select>
 
-<select
-  value={selectedDoctorId}
-  onChange={(e) => setSelectedDoctorId(Number(e.target.value) || "")}
-  className="border rounded px-3 py-2 mr-2 text-black bg-white"
->
-  <option value="">Select Doctor</option>
-  {doctors.map((d) => (
-    <option key={d.id} value={d.id}>
-      {d.name}
-    </option>
-  ))}
-</select>
+            <Select
+              showSearch
+              placeholder="Select Doctor"
+              optionFilterProp="children"
+              value={selectedDoctorId || undefined}
+              onChange={(value) => setSelectedDoctorId(value)}
+              style={{ minWidth: 200 }}
+              filterOption={(input, option) =>
+                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {doctors.map((d) => (
+                <Option key={d.id} value={d.id}>
+                  {d.name}
+                </Option>
+              ))}
+            </Select>
 
+            <Input
+              type="datetime-local"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              style={{ minWidth: 200 }}
+            />
 
-          <input
-            type="datetime-local"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-            className="border rounded px-3 py-2 mr-2"
-          />
-
-          <button
-            onClick={handleAddAppointment}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-          >
-            Schedule
-          </button>
+            <Button type="primary" onClick={handleAddAppointment}>
+              Schedule
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white shadow rounded p-6">
@@ -230,8 +235,8 @@ const toggleCheckIn = async (id: number, currentStatus: string) => {
               <tbody>
                 {appointments.map((appt) => (
                   <tr key={appt.id}>
-                    <td className="border border-gray-300 px-4 py-2">{appt.patientName || "N/A"}</td>
-                    <td className="border border-gray-300 px-4 py-2">{appt.doctorName || "N/A"}</td>
+                    <td className="border border-gray-300 px-4 py-2">{getPatientName(appt.patientId)}</td>
+                    <td className="border border-gray-300 px-4 py-2">{getDoctorName(appt.doctorId)}</td>
                     <td className="border border-gray-300 px-4 py-2">
                       {new Date(appt.appointmentDate).toLocaleString()}
                     </td>

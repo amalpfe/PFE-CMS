@@ -2,43 +2,68 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 
-router.post('/assistant', async (req, res) => {
-  const { message, history = [] } = req.body;
+const MEDICAL_PROMPT = `
+You are a medical triage assistant. Analyze symptoms and suggest ONLY the medical specialty needed.
+Rules:
+- Output ONLY the specialty name (e.g., "Cardiology")
+- Map symptoms to specialties:
+  • Chest pain → Cardiology
+  • Skin rash → Dermatology
+  • Head injury → Neurology
+  • Abdominal pain → Gastroenterology
+  • Child illness → Pediatrics
+- If unsure → "General Physician"
 
-  const messages = [
-    {
-      role: 'system',
-      content:
-        "You are a friendly medical assistant. Ask the user about their symptoms and suggest a suitable doctor.",
-    },
-    ...history,
-    { role: 'user', content: message },
-  ];
+Patient symptoms: 
+`;
 
+router.post('/analyze-symptoms', async (req, res) => {
   try {
+    const { symptoms } = req.body;
+    
+    if (!symptoms || typeof symptoms !== 'string') {
+      return res.status(400).json({ error: 'Invalid symptoms input' });
+    }
+
     const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
+      'https://api.deepseek.com/v1/chat/completions',
       {
-        model: 'gpt-3.5-turbo',
-        messages,
-        max_tokens: 1000,
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: MEDICAL_PROMPT },
+          { role: "user", content: symptoms }
+        ],
+        temperature: 0.1,
+        max_tokens: 50
       },
       {
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
         },
+        timeout: 5000
       }
     );
 
-    res.json({ reply: response.data.choices[0].message.content });
-  } catch (err) {
-    console.error('OpenAI Error:', err.response?.data || err.message);
-    res.status(500).json({
-      error: err.response?.data?.error?.message || 'Something went wrong with OpenAI API',
+    const specialty = response.data.choices[0].message.content.trim();
+    res.json({ specialty });
+    
+  } catch (error) {
+    console.error('DeepSeek API error:', error.response?.data || error.message);
+    
+    // Specific handling for insufficient balance
+    if (error.response?.data?.error?.code === 'invalid_request_error') {
+      return res.status(402).json({ // 402 = Payment Required
+        error: 'API service temporarily unavailable',
+        details: 'Please contact system administrator'
+      });
+    }
+
+    res.status(500).json({ 
+      error: 'AI analysis failed',
+      details: error.message
     });
   }
 });
-
 
 module.exports = router;

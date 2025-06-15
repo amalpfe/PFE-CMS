@@ -27,17 +27,17 @@ const Sidebar: FC = () => {
           Appointments
         </Link>
 
-        <Link to="/doctors"    className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+        <Link to="/staff/doctors"    className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
           <img src={addDoctorIcon} alt="Doctors" className="w-6 h-6 mr-4" />
           Doctors
         </Link>
 
-        <Link to="/patients"    className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+        <Link to="/staff/patients"    className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
           <img src={peopleIcon} alt="Patients" className="w-6 h-6 mr-4" />
           Patients
         </Link>
 
-        <Link to="/payments"   className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+        <Link to="/staff/payments"   className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
           <img src={paymentIcon} alt="Payments" className="w-6 h-6 mr-4" />
           Payments
         </Link>

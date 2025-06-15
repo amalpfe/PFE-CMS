@@ -82,13 +82,13 @@ const Dashboard = () => {
     try {
       const res = await axios.get(`http://localhost:5000/doctor/${doctorId}/appointments/detailed`);
       const transformed = res.data
-        .filter((item: any) => item.status !== "Cancelled")
+        .filter((item: any) => item.status === "Scheduled") // ✅ Only scheduled appointments
         .map((item: any) => ({
           id: item.id,
           patientId: item.patientId ?? 0,
           patientName: item.patient || "Unnamed",
           start: new Date(item.datetime),
-          end: new Date(moment(item.datetime).add(30, 'minutes').toISOString()),
+          end: new Date(moment(item.datetime).add(30, "minutes").toISOString()),
         }));
       setAppointments(transformed);
     } catch (err) {
@@ -128,7 +128,7 @@ const Dashboard = () => {
     <DoctorLayout>
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-6">Doctor Dashboard</h1>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Stats and Bookings */}
           <div className="space-y-6">
@@ -154,8 +154,8 @@ const Dashboard = () => {
                   <p className="text-gray-400 text-center py-4">No recent bookings</p>
                 ) : (
                   bookings.slice(0, 5).map((booking) => (
-                    <div 
-                      key={booking.patientId} 
+                    <div
+                      key={booking.patientId}
                       className="flex justify-between items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
                       onClick={() => booking.patientId && navigate(`/doctor/patient/${booking.patientId}`)}
                     >
@@ -178,13 +178,15 @@ const Dashboard = () => {
                           </p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        booking.status === "Completed" 
-                          ? "bg-green-100 text-green-800" 
-                          : booking.status === "Cancelled"
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          booking.status === "Completed"
+                            ? "bg-green-100 text-green-800"
+                            : booking.status === "Cancelled"
                             ? "bg-red-100 text-red-800"
                             : "bg-blue-100 text-blue-800"
-                      }`}>
+                        }`}
+                      >
                         {booking.status}
                       </span>
                     </div>

@@ -179,7 +179,7 @@ export default function DoctorAppointmentsPage() {
       key: "action",
       render: (_: any, record: Appointment) => (
         <Space>
-          {record.status !== "Cancelled" && (
+          {record.status !== "Cancelled" && record.status !== "Completed" && (
             <Button
               danger
               icon={<CloseOutlined />}

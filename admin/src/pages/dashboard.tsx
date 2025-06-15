@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Calendar, type Event } from "react-big-calendar";
-
 import "react-big-calendar/lib/css/react-big-calendar.css";
-
 import { localizer } from "../utils/calendarLocalizer";
-
 import Layout from "../components/Layout";
 
 import DoctorIcon from "../assets/doctor_icon.svg";
 import PatientIcon from "../assets/patients_icon.svg";
 import AppointmentIcon from "../assets/appointments_icon.svg";
-import FeesIcon from "../assets/earning_icon.svg"; // Add your fees icon here
+import FeesIcon from "../assets/earning_icon.svg";
 
 type Appointment = {
   patientName: string;
@@ -67,13 +64,12 @@ const Dashboard = () => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
 
-  // Filter out cancelled appointments
-  const filteredAppointments = recentAppointments.filter(
-    (appointment) => appointment.appointmentStatus.toLowerCase() !== "cancelled"
+  // Only show scheduled appointments
+  const scheduledAppointments = recentAppointments.filter(
+    (appointment) => appointment.appointmentStatus.toLowerCase() === "scheduled"
   );
 
-  // Convert appointments to calendar events
-  const events: Event[] = filteredAppointments.map((appointment) => ({
+  const events: Event[] = scheduledAppointments.map((appointment) => ({
     title: `${appointment.patientName} with Dr. ${appointment.doctorName}`,
     start: new Date(appointment.appointmentDate),
     end: new Date(appointment.appointmentDate),

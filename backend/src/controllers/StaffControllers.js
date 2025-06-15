@@ -21,7 +21,8 @@ exports.loginStaff = async (req, res) => {
     // const isMatch = await bcrypt.compare(password, staff.passwordHash);
 
     // لو حابب تجربة بدون تشفير مؤقتًا (غير مستحسن للأمان)، استخدم:
-    const isMatch = await bcrypt.compare(password, staff.passwordHash);
+  const isMatch = password === staff.passwordHash;
+
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
@@ -252,3 +253,71 @@ exports.getDoctors = async (req, res) => {
   }
 };
 
+
+// // GET all invoices
+// exports.getInvoice = async (req, res) => {
+//   try {
+//     const [rows] = await db.execute(`
+//       SELECT 
+//         billing.id,
+//         CONCAT(p.firstName, ' ', p.lastName) AS patientName,
+//         billing.amount,
+//         billing.paymentStatus AS status,
+//         billing.createdAt AS issuedDate,
+//         billing.updatedAt AS dueDate,
+//         CONCAT('Appointment ID: ', billing.appointmentId) AS description
+//       FROM billing
+//       JOIN patient p ON p.id = billing.patientId
+//     `);
+//     res.json(rows);
+//   } catch (error) {
+//     console.error("Error fetching invoices:", error);
+//     res.status(500).json({ error: "Failed to fetch invoices" });
+//   }
+// };
+
+// // POST new invoice
+// exports.postInvoice = async (req, res) => {
+//   const { patientName, amount, description, issuedDate, dueDate } = req.body;
+//   try {
+//     // Lookup patient ID by name
+//     const [patientRows] = await db.execute(
+//       "SELECT id FROM patient WHERE CONCAT(firstName, ' ', lastName) = ? LIMIT 1",
+//       [patientName]
+//     );
+
+//     if (patientRows.length === 0) {
+//       return res.status(400).json({ error: "Patient not found" });
+//     }
+
+//     const patientId = patientRows[0].id;
+
+//     await db.execute(
+//       `INSERT INTO billing (patientId, appointmentId, amount, paymentStatus, paymentMethod, createdAt, updatedAt) 
+//        VALUES (?, ?, ?, 'Pending', 'Cash', ?, ?)`,
+//       [patientId, 1, amount, issuedDate, dueDate] // dummy appointmentId = 1, adjust if needed
+//     );
+
+//     res.status(201).json({ message: "Invoice created" });
+//   } catch (error) {
+//     console.error("Error creating invoice:", error);
+//     res.status(500).json({ error: "Failed to create invoice" });
+//   }
+// };
+
+// // UPDATE invoice status
+// exports.updateInvoice = async (req, res) => {
+//   const { id } = req.params;
+//   const { status } = req.body;
+
+//   try {
+//     await db.execute(
+//       "UPDATE billing SET paymentStatus = ?, updatedAt = NOW() WHERE id = ?",
+//       [status, id]
+//     );
+//     res.json({ message: "Invoice updated" });
+//   } catch (error) {
+//     console.error("Error updating invoice:", error);
+//     res.status(500).json({ error: "Failed to update invoice" });
+//   }
+// };

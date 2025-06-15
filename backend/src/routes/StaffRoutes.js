@@ -9,6 +9,9 @@ router.get('/checked-in-patients', StaffController.getCheckedInPatients);
 router.get('/pending-payments', StaffController.getPendingPayments);
 router.get('/upcoming-appointments', StaffController.getUpcomingAppointments);
 router.get('/available-doctors', StaffController.getAvailableDoctors);
+// router.put("/invoices/:id", StaffController.updateInvoice);
+// router.post("/invoices", StaffController.postInvoice);
+// router.get("/invoices", StaffController.getInvoice);
 
 
 router.get('/doctors/:doctorId/availability', StaffController.getDoctorAvailability);
