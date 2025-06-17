@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import axios from "axios";
 import moment from "moment";
-import { Table, Input, Button, Tag, Space, message } from "antd";
+import { Table, Input, Button, Tag, Space, message, Modal } from "antd";
 
 interface Appointment {
   id: number;
@@ -23,6 +23,8 @@ const AppointmentCalendar = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "today" | "month">("today");
   const [loading, setLoading] = useState(true);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -68,18 +70,33 @@ const AppointmentCalendar = () => {
     setFilteredAppointments(filtered);
   }, [searchTerm, appointments, filterType]);
 
-  const handleCancel = async (appointmentId: number) => {
+  const showCancelConfirmation = (appointmentId: number) => {
+    setCancelingId(appointmentId);
+    setIsModalVisible(true);
+  };
+
+  const handleCancelConfirmed = async () => {
+    if (cancelingId === null) return;
+
     try {
-      await axios.put(`http://localhost:5000/admin/appointments/${appointmentId}`);
+      await axios.put(`http://localhost:5000/admin/appointments/${cancelingId}`);
       setAppointments((prev) =>
         prev.map((appt) =>
-          appt.id === appointmentId ? { ...appt, appointmentStatus: "Cancelled" } : appt
+          appt.id === cancelingId ? { ...appt, appointmentStatus: "Cancelled" } : appt
         )
       );
       message.success("Appointment cancelled successfully.");
     } catch (error) {
       message.error("Failed to cancel appointment.");
+    } finally {
+      setIsModalVisible(false);
+      setCancelingId(null);
     }
+  };
+
+  const handleCancelRejected = () => {
+    setIsModalVisible(false);
+    setCancelingId(null);
   };
 
   const getStatusTag = (status: string) => {
@@ -140,7 +157,11 @@ const AppointmentCalendar = () => {
       key: "action",
       render: (_: any, record: Appointment) =>
         record.appointmentStatus === "Scheduled" ? (
-          <Button danger type="link" onClick={() => handleCancel(record.id)}>
+          <Button
+            danger
+            type="link"
+            onClick={() => handleCancel(record.id)}
+          >
             Cancel
           </Button>
         ) : (
@@ -189,6 +210,18 @@ const AppointmentCalendar = () => {
           pagination={{ pageSize: 8 }}
           bordered
         />
+
+        <Modal
+          title="Confirm Cancellation"
+          open={isModalVisible}
+          onOk={handleCancelConfirmed}
+          onCancel={handleCancelRejected}
+          okText="Yes, Cancel"
+          cancelText="No"
+          okButtonProps={{ danger: true }}
+        >
+          <p>Are you sure you want to cancel this appointment?</p>
+        </Modal>
       </div>
     </Layout>
   );

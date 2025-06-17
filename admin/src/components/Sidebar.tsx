@@ -5,6 +5,7 @@ import homeIcon from "../assets/home_icon.svg";
 import appointmentIcon from "../assets/appointment_icon.svg";
 import addDoctorIcon from "../assets/add_icon.svg";
 import peopleIcon from "../assets/people_icon.svg";
+import addStaffIcon from "../assets/add_icon.svg";
 
 const Sidebar = () => {
   return (
@@ -38,6 +39,13 @@ const Sidebar = () => {
           <img src={addDoctorIcon} alt="Add Doctor" className="w-6 h-6 mr-4" />
           Add Doctor
         </Link>
+            <Link
+          to="/admin/staff"
+          className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300"
+        >
+          <img src={addStaffIcon} alt="Add Staff" className="w-6 h-6 mr-4" />
+          Add Staff
+        </Link>
 
         <Link
           to="/admin/doctor-list"
@@ -51,6 +59,12 @@ const Sidebar = () => {
       className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
       <img src={peopleIcon} alt="Patient List" className="w-6 h-6 mr-4" />
       Patient List
+      </Link>
+         <Link
+      to="/admin/staff-list"
+      className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+      <img src={peopleIcon} alt="Patient List" className="w-6 h-6 mr-4" />
+      Staff List
       </Link>
 
       </div>

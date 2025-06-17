@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { Table, Button, Input, Modal, Form, message } from "antd";
+import { Table, Input, Button, Modal, Form, message, Select, DatePicker } from "antd";
 import Layout from "../components/Layout";
+import axios from "axios";
+
+const { Option } = Select;
 
 interface Patient {
   id: number;
@@ -42,30 +44,41 @@ interface Appointment {
 
 const PatientList = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/patient/patients");
-        setPatients(response.data);
-      } catch (err) {
-        message.error("Failed to fetch patients");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPatients = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get("http://localhost:5000/patient/patients");
+      setPatients(res.data);
+      setFilteredPatients(res.data);
+    } catch (error) {
+      message.error("Failed to fetch patients");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPatients();
   }, []);
 
-  const handleViewPatient = async (patient: Patient) => {
+  useEffect(() => {
+    setFilteredPatients(
+      patients.filter((p) =>
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+  }, [searchQuery, patients]);
+
+ const handleViewPatient = async (patient: Patient) => {
     setViewingPatient(patient);
     try {
       const response = await axios.get(`http://localhost:5000/patient/appointments/${patient.id}`);
@@ -75,64 +88,32 @@ const PatientList = () => {
     }
   };
 
-  const handleUpdate = async () => {
+  const handleRegisterPatient = async (values: any) => {
     try {
-      const values = await form.validateFields();
-      const response = await axios.put(
-        `http://localhost:5000/patient/patients/${editingPatient?.id}`,
-        values
-      );
-      setPatients((prev) =>
-        prev.map((p) => (p.id === editingPatient?.id ? response.data : p))
-      );
-      setEditingPatient(null);
-      message.success("Patient updated successfully");
+      const payload = {
+        ...values,
+        dateOfBirth: values.dateOfBirth.format("YYYY-MM-DD"),
+      };
+      await axios.post("http://localhost:5000/patient/register", payload);
+      message.success("Patient registered successfully");
+      setRegisterModalOpen(false);
+      form.resetFields();
+      fetchPatients();
     } catch {
-      message.error("Failed to update patient");
+      message.error("Failed to register patient");
     }
   };
-
-  const confirmDelete = async () => {
-    try {
-      await axios.delete(`http://localhost:5000/patient/patients/${patientToDelete?.id}`);
-      setPatients((prev) => prev.filter((p) => p.id !== patientToDelete?.id));
-      setPatientToDelete(null);
-      message.success("Patient deleted successfully");
-    } catch {
-      message.error("Failed to delete patient");
-    }
-  };
-
-  const filteredPatients = patients.filter((p) =>
-    `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const columns = [
     {
       title: "Name",
-      dataIndex: "firstName",
       render: (_: any, record: Patient) => `${record.firstName} ${record.lastName}`,
     },
-    {
-      title: "DOB",
-      dataIndex: "dateOfBirth",
-    },
-    {
-      title: "Gender",
-      dataIndex: "gender",
-    },
-    {
-      title: "Phone",
-      dataIndex: "phoneNumber",
-    },
-    {
-      title: "Email",
-      dataIndex: "email",
-    },
-    {
-      title: "Address",
-      dataIndex: "address",
-    },
+    { title: "DOB", dataIndex: "dateOfBirth" },
+    { title: "Gender", dataIndex: "gender" },
+    { title: "Phone", dataIndex: "phoneNumber" },
+    { title: "Email", dataIndex: "email" },
+    { title: "Address", dataIndex: "address" },
     {
       title: "Emergency Contact",
       render: (_: any, record: Patient) =>
@@ -141,14 +122,7 @@ const PatientList = () => {
     {
       title: "Actions",
       render: (_: any, record: Patient) => (
-        <>
-          <Button type="link" onClick={() => handleViewPatient(record)}>View</Button>
-          <Button type="link" onClick={() => {
-            setEditingPatient(record);
-            form.setFieldsValue(record);
-          }}>Edit</Button>
-          <Button type="link" danger onClick={() => setPatientToDelete(record)}>Delete</Button>
-        </>
+         <Button type="link" onClick={() => handleViewPatient(record)}>View</Button>
       ),
     },
   ];
@@ -157,35 +131,35 @@ const PatientList = () => {
     {
       title: "Date",
       dataIndex: "appointmentDate",
+      render: (date: string) => new Date(date).toLocaleDateString(),
     },
-    {
-      title: "Doctor",
-      dataIndex: "doctorName",
-    },
-    {
-      title: "Specialty",
-      dataIndex: "specialty",
-    },
-    {
-      title: "Status",
-      dataIndex: "appointmentStatus",
-    },
-    {
-      title: "Notes",
-      dataIndex: "notes",
-    },
+    { title: "Doctor", dataIndex: "doctorName" },
+    { title: "Specialty", dataIndex: "specialty" },
+    { title: "Status", dataIndex: "appointmentStatus" },
+    { title: "Notes", dataIndex: "notes" },
   ];
 
   return (
     <Layout>
       <div className="p-6">
-        <h1 className="text-3xl font-bold text-purple-600 mb-4">Patient List</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold mb-6">Patient List</h1>
+          <Button
+            type="primary"
+            onClick={() => setRegisterModalOpen(true)}
+            className="bg-purple-600"
+          >
+            Register New Patient
+          </Button>
+        </div>
+
         <Input.Search
           placeholder="Search by name..."
-          allowClear
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ maxWidth: 300, marginBottom: 20 }}
+          allowClear
         />
+
         <Table
           rowKey="id"
           columns={columns}
@@ -194,7 +168,7 @@ const PatientList = () => {
           pagination={{ pageSize: 8 }}
         />
 
-        {/* View Modal */}
+        {/* View Patient Modal */}
         <Modal
           open={!!viewingPatient}
           title={`Patient Profile: ${viewingPatient?.firstName} ${viewingPatient?.lastName}`}
@@ -249,56 +223,62 @@ const PatientList = () => {
           )}
         </Modal>
 
-        {/* Edit Modal */}
+        {/* Register Patient Modal */}
         <Modal
-          open={!!editingPatient}
-          title={`Edit Patient: ${editingPatient?.firstName} ${editingPatient?.lastName}`}
-          onCancel={() => setEditingPatient(null)}
-          onOk={handleUpdate}
-          okText="Save"
+          open={registerModalOpen}
+          title="Register New Patient"
+          onCancel={() => setRegisterModalOpen(false)}
+          footer={null}
         >
-          <Form form={form} layout="vertical">
+          <Form form={form} layout="vertical" onFinish={handleRegisterPatient}>
             <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
             <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="dateOfBirth" label="Date of Birth" rules={[{ required: true }]}>
+            <Form.Item name="username" label="Username" rules={[{ required: true }]}>
               <Input />
+            </Form.Item>
+            <Form.Item name="dateOfBirth" label="Date of Birth" rules={[{ required: true }]}>
+              <DatePicker style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="gender" label="Gender" rules={[{ required: true }]}>
+              <Select>
+                <Option value="Male">Male</Option>
+                <Option value="Female">Female</Option>
+                <Option value="Other">Other</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item name="phoneNumber" label="Phone Number" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="phoneNumber" label="Phone" rules={[{ required: true }]}>
+            <Form.Item name="email" label="Email">
               <Input />
             </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true }]}>
+            <Form.Item name="address" label="Address">
               <Input />
             </Form.Item>
-            <Form.Item name="address" label="Address" rules={[{ required: true }]}>
+            <Form.Item
+              name="emergencyContactName"
+              label="Emergency Contact Name"
+              rules={[{ required: true }]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item name="emergencyContactName" label="Emergency Contact Name" rules={[{ required: true }]}>
+            <Form.Item
+              name="emergencyContactPhone"
+              label="Emergency Contact Phone"
+              rules={[{ required: true }]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item name="emergencyContactPhone" label="Emergency Contact Phone" rules={[{ required: true }]}>
-              <Input />
+            <Form.Item>
+              <Button type="primary" htmlType="submit" className="bg-purple-600">
+                Register
+              </Button>
             </Form.Item>
           </Form>
-        </Modal>
-
-        {/* Delete Confirmation Modal */}
-        <Modal
-          open={!!patientToDelete}
-          title="Confirm Deletion"
-          onCancel={() => setPatientToDelete(null)}
-          onOk={confirmDelete}
-          okText="Delete"
-          okType="danger"
-        >
-          Are you sure you want to delete{" "}
-          <strong>{`${patientToDelete?.firstName} ${patientToDelete?.lastName}`}</strong>?
         </Modal>
       </div>
     </Layout>

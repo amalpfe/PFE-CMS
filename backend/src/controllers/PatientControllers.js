@@ -106,11 +106,9 @@ const getAllDoctors = async (req, res) => {
 
     const updatedResults = results.map((doc) => ({
       ...doc,
-      image: doc.image?.startsWith("data:")
+      image: doc.image.startsWith("data:")
         ? doc.image
-        : doc.image
-        ? `data:image/png;base64,${doc.image}`
-        : "", // or fallback image
+        : `data:image/png;base64,${doc.image}`,
     }));
 
     res.status(200).json(updatedResults);
@@ -119,6 +117,7 @@ const getAllDoctors = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch doctors", error: err });
   }
 };
+
 
 
 const getDoctorDetails = async (req, res) => {

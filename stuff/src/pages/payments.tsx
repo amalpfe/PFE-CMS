@@ -1,143 +1,177 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Table, Button, message } from "antd";
 import axios from "axios";
-import type { ColumnsType } from "antd/es/table";
-import ReactToPrint from "react-to-print";
 import Layout from "../components/Layout";
 
-interface Invoice {
+import { Select, Input, Tag, Modal, Space } from 'antd';
+
+const { Option } = Select;
+const { Search } = Input;
+
+interface Payment {
   id: number;
+  appointmentId: number;
   patientName: string;
-  description: string;
+  doctorName: string;
+  appointmentDate: string;
   amount: number;
-  status: string;
-  issuedDate: string;
-  dueDate: string;
+  paymentStatus: "Paid" | "Pending" | "Cancelled";
+  paymentMethod: "Cash" | "Card" | "Online";
+  createdAt: string;
 }
 
-const Payments: React.FC = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const printRef = useRef<HTMLDivElement>(null);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+const Payments = () => {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchInvoices = async () => {
+  const fetchPayments = async () => {
     try {
-      setLoading(true);
-      const response = await axios.get("http://localhost:5000/doctor/invoices");
-      setInvoices(response.data);
+      const response = await axios.get("http://localhost:5000/staff/payments");
+      setPayments(response.data);
+      setFilteredPayments(response.data);
+    } catch {
+      message.error("Failed to fetch payments.");
+    } finally {
       setLoading(false);
-    } catch (error) {
-      message.error("Failed to fetch invoices");
-      setLoading(false);
-    }
-  };
-
-  const markAsPaid = async (id: number) => {
-    try {
-      await axios.put(`http://localhost:5000/doctor/invoices/${id}/pay`);
-      message.success("Marked as paid");
-      fetchInvoices();
-    } catch (error) {
-      message.error("Failed to mark as paid");
     }
   };
 
   useEffect(() => {
-    fetchInvoices();
+    fetchPayments();
   }, []);
 
-  const columns: ColumnsType<Invoice> = [
+  useEffect(() => {
+    let data = [...payments];
+
+    if (filterStatus !== "All") {
+      data = data.filter((p) => p.paymentStatus === filterStatus);
+    }
+
+    if (searchQuery.trim()) {
+      data = data.filter((p) =>
+        p.patientName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredPayments(data);
+  }, [filterStatus, searchQuery, payments]);
+
+  const updatePaymentStatus = async (id: number, newStatus: string) => {
+    try {
+      await axios.put(`http://localhost:5000/staff/payments/${id}`, {
+        paymentStatus: newStatus,
+      });
+      message.success("Payment status updated.");
+      fetchPayments();
+      setEditingId(null);
+    } catch {
+      message.error("Update failed.");
+    }
+  };
+
+  const columns = [
     {
-      title: "Invoice ID",
-      dataIndex: "id",
-      key: "id",
+      title: "Appointment",
+      dataIndex: "appointmentId",
     },
     {
-      title: "Patient Name",
+      title: "Patient",
       dataIndex: "patientName",
-      key: "patientName",
     },
     {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
+      title: "Doctor",
+      dataIndex: "doctorName",
     },
     {
-      title: "Amount ($)",
+      title: "Date",
+      dataIndex: "appointmentDate",
+    },
+    {
+      title: "Amount",
       dataIndex: "amount",
-      key: "amount",
-    },
-    {
-      title: "Issued Date",
-      dataIndex: "issuedDate",
-      key: "issuedDate",
-      render: (text: string) => new Date(text).toLocaleDateString(),
-    },
-    {
-      title: "Due Date",
-      dataIndex: "dueDate",
-      key: "dueDate",
-      render: (text: string) => new Date(text).toLocaleDateString(),
+      render: (amount: number) =>
+        amount && !isNaN(Number(amount)) ? Number(amount).toFixed(2) + " $" : "0.00 $",
     },
     {
       title: "Status",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "paymentStatus",
       render: (status: string) => (
-        <span style={{ color: status === "Paid" ? "green" : "red" }}>
+        <Tag color={status === "Paid" ? "green" : status === "Pending" ? "orange" : "red"}>
           {status}
-        </span>
+        </Tag>
       ),
     },
     {
+      title: "Method",
+      dataIndex: "paymentMethod",
+    },
+    {
       title: "Actions",
-      key: "actions",
-      render: (_text, record) => (
-        <div style={{ display: "flex", gap: "8px" }}>
-          <Button
-            type="primary"
-            onClick={() => markAsPaid(record.id)}
-            disabled={record.status === "Paid"}
-          >
-            Mark Paid
+      render: (_: any, record: Payment) => (
+        <>
+          <Button onClick={() => setEditingId(record.id)} style={{ marginRight: 8 }}>
+            Update
           </Button>
+          <Button onClick={() => window.print()}>Print Invoice</Button>
 
-          <ReactToPrint
-            trigger={() => <Button>Print</Button>}
-            content={() => printRef.current}
-            onBeforeGetContent={() => setSelectedInvoice(record)}
-          />
-        </div>
+          <Modal
+            open={editingId === record.id}
+            title="Update Payment Status"
+            onCancel={() => setEditingId(null)}
+            onOk={() => updatePaymentStatus(record.id, selectedStatus)}
+          >
+            <Select
+              defaultValue={record.paymentStatus}
+              onChange={(val) => setSelectedStatus(val)}
+              style={{ width: "100%" }}
+            >
+              <Option value="Paid">Paid</Option>
+              <Option value="Pending">Pending</Option>
+              <Option value="Cancelled">Cancelled</Option>
+            </Select>
+          </Modal>
+        </>
       ),
     },
   ];
 
   return (
     <Layout>
-      <div className="p-4">
-        <h2 className="text-xl font-bold mb-4">Payments</h2>
-        <Table
-          columns={columns}
-          dataSource={invoices}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSize: 5 }}
-        />
+      <div className="p-6">
+        <h1 className="text-3xl font-bold mb-6">Payments List</h1>
 
-        {/* Hidden invoice print content */}
-        <div style={{ display: "none" }}>
-          <div ref={printRef} className="p-8 font-mono">
-            <h2 className="text-2xl font-bold mb-4">Invoice</h2>
-            <p><strong>Invoice ID:</strong> {selectedInvoice?.id}</p>
-            <p><strong>Patient Name:</strong> {selectedInvoice?.patientName}</p>
-            <p><strong>Description:</strong> {selectedInvoice?.description}</p>
-            <p><strong>Amount:</strong> ${selectedInvoice?.amount}</p>
-            <p><strong>Issued Date:</strong> {selectedInvoice?.issuedDate ? new Date(selectedInvoice.issuedDate).toLocaleDateString() : ''}</p>
-            <p><strong>Due Date:</strong> {selectedInvoice?.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString() : ''}</p>
-            <p><strong>Status:</strong> {selectedInvoice?.status}</p>
-          </div>
-        </div>
+        <Space style={{ marginBottom: 16 }} wrap>
+          <Select
+            value={filterStatus}
+            onChange={(value) => setFilterStatus(value)}
+            style={{ width: 200 }}
+          >
+            <Option value="All">All Statuses</Option>
+            <Option value="Paid">Paid</Option>
+            <Option value="Pending">Pending</Option>
+            <Option value="Cancelled">Cancelled</Option>
+          </Select>
+
+          <Search
+            placeholder="Search by patient name"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
+          />
+        </Space>
+
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={filteredPayments}
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+        />
       </div>
     </Layout>
   );
