@@ -106,7 +106,11 @@ const AppointmentCalendar = () => {
       render: (text: string, record: Appointment) => (
         <Space>
           <img
-            src={record.patientImage || "https://via.placeholder.com/32"}
+            src={
+              record.patientImage
+                ? `http://localhost:5000/uploads/${record.patientImage}`
+                : "https://via.placeholder.com/32"
+            }
             alt="avatar"
             className="w-8 h-8 rounded-full object-cover"
           />
@@ -136,11 +140,7 @@ const AppointmentCalendar = () => {
       key: "action",
       render: (_: any, record: Appointment) =>
         record.appointmentStatus === "Scheduled" ? (
-          <Button
-            danger
-            type="link"
-            onClick={() => handleCancel(record.id)}
-          >
+          <Button danger type="link" onClick={() => handleCancel(record.id)}>
             Cancel
           </Button>
         ) : (

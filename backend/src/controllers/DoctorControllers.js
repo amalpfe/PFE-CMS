@@ -270,6 +270,7 @@ exports.updateProfile = async (req, res) => {
 // const jwt = require('jsonwebtoken');
 // const saltRounds = 10;
 
+
 exports.createDoctor = async (req, res) => {
   const {
     username,
@@ -283,8 +284,8 @@ exports.createDoctor = async (req, res) => {
     fees,
     experience,
     about,
-    image,
-    availability // array of { dayOfWeek, startTime, endTime }
+    image, // Expect this as a base64 string from client
+    availability, // array of { dayOfWeek, startTime, endTime }
   } = req.body;
 
   const conn = await db.getConnection();
@@ -305,7 +306,7 @@ exports.createDoctor = async (req, res) => {
     const generatedPassword = crypto.randomBytes(6).toString("hex"); // 12-char password
     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
-    // Insert into doctor table
+    // Insert into doctor table with image as base64 string
     const [result] = await conn.query(
       `INSERT INTO doctor (
         firstName, lastName, specialty, phoneNumber, email,
@@ -315,7 +316,8 @@ exports.createDoctor = async (req, res) => {
       [
         firstName, lastName, specialty, phoneNumber, email,
         address, degree, fees, experience, about,
-        image, username, hashedPassword
+        image, // base64 string here
+        username, hashedPassword
       ]
     );
 
@@ -324,7 +326,7 @@ exports.createDoctor = async (req, res) => {
     // Insert availability if provided
     if (availability && availability.length > 0) {
       const availabilityValues = availability.map(({ dayOfWeek, startTime, endTime }) => [
-        doctorId, dayOfWeek, startTime, endTime
+        doctorId, dayOfWeek, startTime, endTime,
       ]);
       const placeholders = availabilityValues.map(() => "(?, ?, ?, ?)").join(", ");
       const flattenedValues = availabilityValues.flat();
@@ -344,7 +346,7 @@ exports.createDoctor = async (req, res) => {
     });
 
     const mailOptions = {
-      from: `"Aeternum " <${process.env.EMAIL_USER}>`,
+      from: `"Aeternum" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your Account Credentials",
       text: `Welcome Dr. ${firstName},\n\nYour account has been created.\n\nUsername: ${username}\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password immediately after your first login.\n\nBest regards,\nAmoula lhaboula`,
@@ -363,6 +365,7 @@ exports.createDoctor = async (req, res) => {
     conn.release();
   }
 };
+
 
 
 

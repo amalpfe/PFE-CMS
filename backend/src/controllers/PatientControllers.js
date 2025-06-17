@@ -106,9 +106,11 @@ const getAllDoctors = async (req, res) => {
 
     const updatedResults = results.map((doc) => ({
       ...doc,
-      image: doc.image.startsWith("data:")
+      image: doc.image?.startsWith("data:")
         ? doc.image
-        : `data:image/png;base64,${doc.image}`,
+        : doc.image
+        ? `data:image/png;base64,${doc.image}`
+        : "", // or fallback image
     }));
 
     res.status(200).json(updatedResults);

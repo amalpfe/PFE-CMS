@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { Select, Input, Button, message } from "antd";
-import type { SelectProps } from "antd";
 
 const { Option } = Select;
 

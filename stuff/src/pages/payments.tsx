@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Table, Button, message } from "antd";
 import axios from "axios";
-import { ColumnsType } from "antd/es/table";
+import type { ColumnsType } from "antd/es/table";
 import ReactToPrint from "react-to-print";
 import Layout from "../components/Layout";
 

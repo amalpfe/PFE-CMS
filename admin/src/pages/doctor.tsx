@@ -1,293 +1,197 @@
-import React, { useRef, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import uploadIcon from "../assets/upload_area.svg";
+import axios from "axios";
+import moment from "moment";
+import { Table, Input, Button, Tag, Space, message } from "antd";
 
-// Utility to generate random password
-const generateRandomPassword = (length = 10) => {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-};
+interface Appointment {
+  id: number;
+  patientName: string;
+  doctorName: string;
+  appointmentDate: string;
+  appointmentStatus: "Scheduled" | "Completed" | "Cancelled";
+  payment?: string;
+  age?: number;
+  fees?: string;
+  notes?: string;
+  patientImage?: string;
+}
 
-const Doctors = () => {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    specialty: "",
-    phoneNumber: "",
-    email: "",
-    address: "",
-    degree: "",
-    experience: "",
-    professional_registration_number: "",
-    fees: "",
-    about: "",
-    image: "",
-    hiringDate: "",
-  });
+const AppointmentCalendar = () => {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "today" | "month">("today");
+  const [loading, setLoading] = useState(true);
 
-  const [availability, setAvailability] = useState([
-    { dayOfWeek: "", startTime: "", endTime: "" },
-  ]);
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:5000/admin/recent-appointments");
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+        const fixedData = response.data.map((appt: any) => ({
+          ...appt,
+          id: appt.id ?? appt.appointmentId,
+        }));
 
-  const handleImageClick = () => fileInputRef.current?.click();
+        setAppointments(fixedData);
+      } catch (error) {
+        message.error("Failed to load appointments.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    fetchAppointments();
+  }, []);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    let filtered = [...appointments];
 
-  const handleAvailabilityChange = (index: number, field: string, value: string) => {
-    setAvailability((prev) =>
-      prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot))
-    );
-  };
-
-  const addAvailability = () =>
-    setAvailability((prev) => [...prev, { dayOfWeek: "", startTime: "", endTime: "" }]);
-
-  const removeAvailability = (index: number) =>
-    setAvailability((prev) => prev.filter((_, i) => i !== index));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const generatedPassword = generateRandomPassword();
-
-      const doctorPayload = {
-        ...formData,
-        password: generatedPassword, // auto-generated
-        fees: parseFloat(formData.fees) || 0,
-        experience: Number(formData.experience) || 0,
-        availability,
-      };
-
-      const doctorRes = await axios.post(
-        "http://localhost:5000/doctor/createdoctor",
-        doctorPayload
+    if (filterType === "today") {
+      filtered = filtered.filter((appt) =>
+        moment(appt.appointmentDate).isSame(moment(), "day")
       );
+    } else if (filterType === "month") {
+      filtered = filtered.filter((appt) =>
+        moment(appt.appointmentDate).isSame(moment(), "month")
+      );
+    }
 
-      if (doctorRes.status === 201 || doctorRes.status === 200) {
-        alert(`Doctor added successfully! Generated password: ${generatedPassword}`);
-        setFormData({
-          firstName: "",
-          lastName: "",
-          specialty: "",
-          phoneNumber: "",
-          email: "",
-          address: "",
-          degree: "",
-          experience: "",
-          professional_registration_number: "",
-          fees: "",
-          about: "",
-          image: "",
-          hiringDate: "",
-        });
-        setAvailability([{ dayOfWeek: "", startTime: "", endTime: "" }]);
-      }
-    } catch (error: any) {
-      if (error.response) {
-        if (error.response.status === 409) {
-          alert("This email is already registered. Please use another.");
-        } else if (error.response.data?.message) {
-          alert(error.response.data.message);
-        } else {
-          alert(`Failed to add doctor: ${error.response.statusText}`);
-        }
-        console.error("Backend error:", error.response.data);
-      } else {
-        alert("An unexpected error occurred. Please try again.");
-        console.error("Error adding doctor:", error.message);
-      }
+    if (searchTerm) {
+      filtered = filtered.filter((appt) =>
+        appt.patientName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredAppointments(filtered);
+  }, [searchTerm, appointments, filterType]);
+
+  const handleCancel = async (appointmentId: number) => {
+    try {
+      await axios.put(`http://localhost:5000/admin/appointments/${appointmentId}`);
+      setAppointments((prev) =>
+        prev.map((appt) =>
+          appt.id === appointmentId ? { ...appt, appointmentStatus: "Cancelled" } : appt
+        )
+      );
+      message.success("Appointment cancelled successfully.");
+    } catch (error) {
+      message.error("Failed to cancel appointment.");
     }
   };
+
+  const getStatusTag = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return <Tag color="green">{status}</Tag>;
+      case "Cancelled":
+        return <Tag color="red">{status}</Tag>;
+      default:
+        return <Tag color="blue">{status}</Tag>;
+    }
+  };
+
+  const columns = [
+    {
+      title: "#",
+      key: "index",
+      render: (_: any, __: any, index: number) => index + 1,
+    },
+    {
+      title: "Patient",
+      dataIndex: "patientName",
+      key: "patientName",
+      render: (text: string, record: Appointment) => (
+        <Space>
+          <img
+            src={record.patientImage || "https://via.placeholder.com/32"}
+            alt="avatar"
+            className="w-8 h-8 rounded-full object-cover"
+          />
+          <span>{text}</span>
+        </Space>
+      ),
+    },
+    {
+      title: "Doctor",
+      dataIndex: "doctorName",
+      key: "doctorName",
+    },
+    {
+      title: "Date & Time",
+      dataIndex: "appointmentDate",
+      key: "appointmentDate",
+      render: (date: string) => moment(date).format("YYYY-MM-DD HH:mm"),
+    },
+    {
+      title: "Status",
+      dataIndex: "appointmentStatus",
+      key: "appointmentStatus",
+      render: (status: string) => getStatusTag(status),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_: any, record: Appointment) =>
+        record.appointmentStatus === "Scheduled" ? (
+          <Button
+            danger
+            type="link"
+            onClick={() => handleCancel(record.id)}
+          >
+            Cancel
+          </Button>
+        ) : (
+          <span style={{ color: "#999" }}>—</span>
+        ),
+    },
+  ];
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto p-4 bg-white shadow-md rounded-xl max-h-screen overflow-y-auto">
-        <h1 className="text-3xl font-bold text-purple-600 mb-6">Add Doctor</h1>
+      <div className="p-6 bg-white rounded-lg shadow">
+        <h1 className="text-xl font-semibold text-purple-700 mb-4">All Appointments</h1>
 
-        {/* Image Upload */}
-        <div className="flex justify-center mb-6">
-          <div
-            onClick={handleImageClick}
-            className="w-32 h-32 border-2 border-dashed border-gray-300 flex items-center justify-center rounded-lg cursor-pointer overflow-hidden"
-          >
-            <img
-              src={formData.image || uploadIcon}
-              alt="Upload"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleImageChange}
-            className="hidden"
+        <Space className="mb-4 flex flex-wrap" size="middle">
+          <Input
+            placeholder="Search by patient name"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: 220 }}
           />
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { label: "First Name", name: "firstName" },
-            { label: "Last Name", name: "lastName" },
-            { label: "Phone Number", name: "phoneNumber" },
-            { label: "Email", name: "email", type: "email" },
-            { label: "Address", name: "address" },
-            { label: "Degree", name: "degree" },
-            { label: "Experience (years)", name: "experience", type: "number", min: 0 },
-            {
-              label: "Professional Registration Number",
-              name: "professional_registration_number",
-            },
-            { label: "Fees", name: "fees" },
-            { label: "Hiring Date", name: "hiringDate", type: "date" },
-          ].map(({ label, name, type = "text" }) => (
-            <div key={name}>
-              <label htmlFor={name} className="block font-semibold text-sm text-gray-700">
-                {label}
-              </label>
-              <input
-                type={type}
-                id={name}
-                name={name}
-                value={formData[name as keyof typeof formData]}
-                onChange={handleChange}
-                className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                required
-              />
-            </div>
-          ))}
-
-          {/* Specialty Dropdown */}
-          <div>
-            <label htmlFor="specialty" className="block font-semibold text-sm text-gray-700">
-              Specialty
-            </label>
-            <select
-              id="specialty"
-              name="specialty"
-              value={formData.specialty}
-              onChange={handleChange}
-              className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              required
-            >
-              <option value="">Select Specialty</option>
-              {[
-                "Dermatologist",
-                "Pediatrician",
-                "Neurologist",
-                "Gastroenterologist",
-                "Gynecologist",
-                "General Physician",
-              ].map((specialty) => (
-                <option key={specialty} value={specialty}>
-                  {specialty}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* About */}
-          <div className="md:col-span-2">
-            <label htmlFor="about" className="block font-semibold text-sm text-gray-700">
-              About
-            </label>
-            <textarea
-              id="about"
-              name="about"
-              value={formData.about}
-              onChange={handleChange}
-              rows={3}
-              className="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              required
-            />
-          </div>
-
-          {/* Availability */}
-          <div className="md:col-span-2">
-            <label className="block font-semibold text-sm text-gray-700 mb-2">
-              Doctor Availability
-            </label>
-            {availability.map((slot, index) => (
-              <div key={index} className="grid grid-cols-4 gap-4 items-center mb-2">
-                <select
-                  value={slot.dayOfWeek}
-                  onChange={(e) => handleAvailabilityChange(index, "dayOfWeek", e.target.value)}
-                  className="px-3 py-2 border rounded"
-                  required
-                >
-                  <option value="">Day</option>
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
-                    (day) => (
-                      <option key={day} value={day}>
-                        {day}
-                      </option>
-                    )
-                  )}
-                </select>
-                <input
-                  type="time"
-                  value={slot.startTime}
-                  onChange={(e) => handleAvailabilityChange(index, "startTime", e.target.value)}
-                  className="px-3 py-2 border rounded"
-                  required
-                />
-                <input
-                  type="time"
-                  value={slot.endTime}
-                  onChange={(e) => handleAvailabilityChange(index, "endTime", e.target.value)}
-                  className="px-3 py-2 border rounded"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => removeAvailability(index)}
-                  className="text-red-600 font-bold"
-                  disabled={availability.length === 1}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addAvailability}
-              className="mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-              Add Availability
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            className="md:col-span-2 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded"
+          <Button
+            type={filterType === "all" ? "primary" : "default"}
+            onClick={() => setFilterType("all")}
           >
-            Add Doctor
-          </button>
-        </form>
+            All
+          </Button>
+          <Button
+            type={filterType === "today" ? "primary" : "default"}
+            onClick={() => setFilterType("today")}
+          >
+            Today
+          </Button>
+          <Button
+            type={filterType === "month" ? "primary" : "default"}
+            onClick={() => setFilterType("month")}
+          >
+            This Month
+          </Button>
+        </Space>
+
+        <Table
+          columns={columns}
+          dataSource={filteredAppointments}
+          loading={loading}
+          rowKey="id"
+          pagination={{ pageSize: 8 }}
+          bordered
+        />
       </div>
     </Layout>
   );
 };
 
-export default Doctors;
+export default AppointmentCalendar;
