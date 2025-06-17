@@ -4,6 +4,56 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET; // Make sure it's defined in your .env file
 
+exports.createStaff = async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    phoneNumber,
+    email,
+    username,
+    password,
+    dateOfBirth,
+    hiringDate,
+    image,
+  } = req.body;
+
+  try {
+    // Check if username or email already exists
+    const [existing] = await db.execute(
+      "SELECT id FROM staff WHERE username = ? OR email = ?",
+      [username, email]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ message: "Username or email already exists." });
+    }
+
+    // Hash the password before storing
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Insert new staff
+    await db.execute(
+      `INSERT INTO staff
+      (firstName, lastName, phoneNumber, email, username, passwordHash, dateOfBirth, hiringDate, image)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+        username,
+        passwordHash,
+        dateOfBirth || null,
+        hiringDate || null,
+        image || null,
+      ]
+    );
+
+    res.status(201).json({ message: "Staff member created successfully." });
+  } catch (error) {
+    console.error("Error creating staff:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
 exports.loginStaff = async (req, res) => {
   const { email, password } = req.body;
 
@@ -321,3 +371,184 @@ exports.getDoctors = async (req, res) => {
 //     res.status(500).json({ error: "Failed to update invoice" });
 //   }
 // };
+
+
+exports.getAllPayments = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT b.id, b.appointmentId, b.amount, b.paymentStatus, b.paymentMethod, b.createdAt,
+             p.firstName AS patientName, d.firstName AS doctorName, a.appointmentDate
+      FROM billing b
+      JOIN appointment a ON a.id = b.appointmentId
+      JOIN patient p ON p.id = b.patientId
+      JOIN doctor d ON d.id = a.doctorId
+    `);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Fetch billing error:", error);
+    res.status(500).json({ message: "Error fetching billing records" });
+  }
+};
+
+exports.updatePaymentStatus = async (req, res) => {
+  const { id } = req.params;
+  const { paymentStatus } = req.body;
+
+  try {
+    await db.execute("UPDATE billing SET paymentStatus = ?, updatedAt = NOW() WHERE id = ?", [
+      paymentStatus,
+      id,
+    ]);
+    res.status(200).json({ message: "Payment status updated" });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Failed to update payment" });
+  }
+};
+// src/controllers/DoctorAvailabilityController.js
+
+// Get all availability with doctor name
+exports.getAvailability = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT 
+        da.id, da.doctorId, CONCAT(d.firstName, ' ', d.lastName) AS doctorName,
+        da.dayOfWeek, da.startTime, da.endTime
+      FROM doctoravailability da
+      JOIN doctor d ON d.id = da.doctorId
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching availability" });
+  }
+};
+
+// Add
+exports.addAvailability = async (req, res) => {
+  const { doctorId, dayOfWeek, startTime, endTime } = req.body;
+  try {
+    await db.execute(
+      "INSERT INTO doctoravailability (doctorId, dayOfWeek, startTime, endTime) VALUES (?, ?, ?, ?)",
+      [doctorId, dayOfWeek, startTime, endTime]
+    );
+    res.status(201).json({ message: "Availability added" });
+  } catch (err) {
+    res.status(500).json({ message: "Error inserting availability" });
+  }
+};
+
+// Update
+exports.updateAvailability = async (req, res) => {
+  const { id } = req.params;
+  const { doctorId, dayOfWeek, startTime, endTime } = req.body;
+  try {
+    await db.execute(
+      "UPDATE doctoravailability SET doctorId = ?, dayOfWeek = ?, startTime = ?, endTime = ? WHERE id = ?",
+      [doctorId, dayOfWeek, startTime, endTime, id]
+    );
+    res.json({ message: "Availability updated" });
+  } catch (err) {
+    res.status(500).json({ message: "Error updating availability" });
+  }
+};
+
+// Delete
+exports.deleteAvailability = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute("DELETE FROM doctoravailability WHERE id = ?", [id]);
+    res.json({ message: "Availability deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting availability" });
+  }
+};
+// src/controllers/StaffController.js
+
+
+// Get all contact messages
+exports.getContactMessages = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT id, name, email, message, created_at
+      FROM contactus
+      ORDER BY created_at DESC
+    `);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Error fetching contact messages:", error);
+    res.status(500).json({ message: "Failed to retrieve contact messages." });
+  }
+};
+
+// src/controllers/StaffAppointmentsController.js
+
+exports.list = async (_, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT a.id, a.patientId, CONCAT(p.firstName, " ", p.lastName) AS patientName,
+             a.doctorId, CONCAT(d.firstName, " ", d.lastName) AS doctorName,
+             DATE_FORMAT(a.appointmentDate, "%Y-%m-%d %H:%i") AS appointmentDate,
+             a.appointmentStatus, a.notes
+      FROM appointment a
+      JOIN patient p ON p.id = a.patientId
+      JOIN doctor d ON d.id = a.doctorId
+      ORDER BY a.appointmentDate DESC
+    `);
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Failed to query appointments" });
+  }
+};
+
+exports.get = async (req, res) => {
+  const { id } = req.params;
+  // similar to list but with WHERE id
+};
+
+exports.create = async (req, res) => {
+  const { patientId, doctorId, appointmentDate, notes, appointmentStatus } = req.body;
+  try {
+    await db.execute(`
+      INSERT INTO appointment
+        (patientId, doctorId, appointmentDate, notes, appointmentStatus)
+      VALUES (?, ?, ?, ?, ?)
+    `, [patientId, doctorId, appointmentDate, notes, appointmentStatus]);
+    res.status(201).json({ message: "Created" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Create failed" });
+  }
+};
+
+exports.update = async (req, res) => {
+  const { id } = req.params;
+  const { patientId, doctorId, appointmentDate, notes, appointmentStatus } = req.body;
+  try {
+    await db.execute(`
+      UPDATE appointment
+      SET patientId=?, doctorId=?, appointmentDate=?, notes=?, appointmentStatus=?, updatedAt=NOW()
+      WHERE id=?
+    `, [patientId, doctorId, appointmentDate, notes, appointmentStatus, id]);
+    res.json({ message: "Updated" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Update failed" });
+  }
+};
+
+exports.updateStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    await db.execute(`
+      UPDATE appointment
+      SET appointmentStatus=?, updatedAt=NOW()
+      WHERE id=?
+    `, [status, id]);
+    res.json({ message: "Status updated" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Update status failed" });
+  }
+};

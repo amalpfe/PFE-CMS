@@ -8,6 +8,17 @@ const db = require('../../config'); // Your MySQL db connection
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
+// src/controllers/DoctorController.js
+exports.getAllDoctors = async (req, res) => {
+  try {
+    const [doctors] = await db.execute("SELECT id, firstName, lastName FROM doctor");
+    res.json(doctors);
+  } catch {
+    res.status(500).json({ message: "Error fetching doctors." });
+  }
+};
+
+
 exports.getDoctorDashboard = async (req, res) => {
   const doctorId = req.params.id;
 

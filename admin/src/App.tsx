@@ -9,9 +9,11 @@ import DoctorDashboard from "./pages/DoctorDashboard";
 import DoctorAppointments from "./pages/DoctorAppointments";
 import DoctorProfile from "./pages/DoctorProfile";
 import PatientList from "./pages/patientlist";
+import StaffList from "./pages/stafflist";
 import DoctorPatientList from './pages/doctorpatientlist';
 import PatientDetails from "./pages/PatientDetails";
-import CreateAppointment from "./pages/CreateAppointment"; // adjust path if necessary
+import CreateAppointment from "./pages/CreateAppointment";
+import Staff from "./pages/addstaff";// adjust path if necessary
 
 function App() {
   return (
@@ -22,8 +24,10 @@ function App() {
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/appointments" element={<Appointments />} />
         <Route path="/admin/doctors" element={<Doctors />} />
+        <Route path="/admin/staff" element={<Staff />} />
         <Route path="/admin/doctor-list" element={<DoctorList />} />
         <Route path="/admin/patient-list" element={<PatientList />} />
+        <Route path="/admin/staff-list" element={<StaffList />} />
         {/* <Route path="/doctor/dashboard" element={<DoctorLayout children={undefined} />} /> */}
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/doctor/appointments" element={<DoctorAppointments />} />

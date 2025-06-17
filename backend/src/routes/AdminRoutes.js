@@ -4,6 +4,7 @@ const AdminController = require('../controllers/AdminControllers');
 
 
 router.get('/counts', AdminController.getCounts);
+router.get('/staff', AdminController.getAllStaff);
 router.get('/recent-appointments',AdminController.getRecentAppointments);
 // Appointment routes
 router.get('/appointments', AdminController.getAllAppointments);

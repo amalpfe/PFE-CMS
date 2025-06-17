@@ -7,7 +7,7 @@ import appointmentIcon from "../assets/appointment_icon.svg";
 import addDoctorIcon from "../assets/add_icon.svg";
 import peopleIcon from "../assets/people_icon.svg";
 import paymentIcon from "../assets/patient_icon.svg";
-import reportIcon from "../assets/appointments_icon.svg";
+import reportIcon from "../assets/add_icon.svg";
 
 const Sidebar: FC = () => {
  
@@ -42,9 +42,9 @@ const Sidebar: FC = () => {
           Payments
         </Link>
 
-        <Link to="/reports"    className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
+        <Link to="/staff/reports"    className="flex items-center px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300">
           <img src={reportIcon} alt="Reports" className="w-6 h-6 mr-4" />
-          Reports
+          Contact Messages
         </Link>
       </div>
     </aside>

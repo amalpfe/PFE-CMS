@@ -5,6 +5,19 @@ const jwt = require('jsonwebtoken');
 // const nodemailer = require("nodemailer");
 // const crypto = require("crypto");
 
+// staffController.js
+
+
+exports.getAllStaff = async (req, res) => {
+  try {
+    const [rows] = await db.execute("SELECT * FROM staff ORDER BY id DESC"); // جلب كل البيانات من جدول staff
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Error fetching staff:", error);
+    res.status(500).json({ message: "Failed to fetch staff data" });
+  }
+};
+
 exports.getCounts = async (req, res) => {
   try {
     const [[doctors]] = await db.query('SELECT COUNT(*) AS count FROM Doctor');

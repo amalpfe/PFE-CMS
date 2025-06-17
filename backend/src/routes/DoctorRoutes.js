@@ -56,4 +56,5 @@ router.get('/patient/:id/medical-records', DoctorController.getMedicalRecordsByP
 router.get("/patient/:doctorId/patient/:patientId/medical-records", DoctorController.getMedicalRecordsByDoctorAndPatient);
 // POST route to create an appointment
 router.post('/appointments', DoctorController.createAppointment);
+router.get("/all", DoctorController.getAllDoctors);
 module.exports = router;

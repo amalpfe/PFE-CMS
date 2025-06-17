@@ -1,275 +1,342 @@
-import { useState, useEffect } from "react";
+// src/pages/Appointments.tsx
+import React, { useEffect, useState } from "react";
+import {
+  Table,
+  Select,
+  DatePicker,
+  Button,
+  Tag,
+  message,
+  Modal,
+  Form,
+  Input,
+} from "antd";
 import axios from "axios";
+import moment from "moment";
 import Layout from "../components/Layout";
-import { Select, Input, Button, message } from "antd";
-import type { SelectProps } from "antd";
 
 const { Option } = Select;
+const { TextArea } = Input;
+const { Search } = Input;
 
-type Appointment = {
-  appointmentDate: string | number | Date;
+interface Appointment {
   id: number;
-  patientId?: number;
-  doctorId?: number;
+  patientId: number;
+  doctorId: number;
+  patientName: string;
+  doctorName: string;
+  appointmentDate: string;
   appointmentStatus: string;
   notes?: string;
-};
+}
 
-type Person = {
+interface Patient {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface Doctor {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+const statusColors: Record<string, string> = {
+  Scheduled: "blue",
+  Completed: "green",
+  Cancelled: "red",
 };
 
-const API_BASE = "http://localhost:5000/staff";
-
-const Appointment = () => {
+const Appointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<Person[]>([]);
-  const [doctors, setDoctors] = useState<Person[]>([]);
-  const [selectedPatientId, setSelectedPatientId] = useState<number | "">("");
-  const [selectedDoctorId, setSelectedDoctorId] = useState<number | "">("");
-  const [newDate, setNewDate] = useState("");
-  const [showTodayOnly, setShowTodayOnly] = useState(true);
+  const [filtered, setFiltered] = useState<Appointment[]>([]);
+  const [doctorFilter, setDoctorFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [patientSearch, setPatientSearch] = useState<string>("");
+  const [viewFilter, setViewFilter] = useState<"Today" | "All">("Today");
+
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     fetchAppointments();
-    fetchPatients();
     fetchDoctors();
-  }, [showTodayOnly]);
+    fetchPatients();
+  }, []);
 
   const fetchAppointments = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/appointments`);
-      let data = res.data;
-
-      if (showTodayOnly) {
-        const today = new Date().toISOString().split("T")[0];
-        data = data.filter((appt: Appointment) => {
-          const apptDate = new Date(appt.appointmentDate).toISOString().split("T")[0];
-          return apptDate === today;
-        });
-      }
-
-      setAppointments(data);
+      const res = await axios.get("http://localhost:5000/staff/appointments");
+      setAppointments(res.data);
+      setFiltered(res.data);
     } catch (err) {
-      message.error("Failed to fetch appointments");
-    }
-  };
-
-  const fetchPatients = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/patients`);
-      setPatients(res.data);
-    } catch (err) {
-      message.error("Failed to fetch patients");
+      console.error(err);
+      message.error("Failed to load appointments.");
     }
   };
 
   const fetchDoctors = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/doctors`);
+      const res = await axios.get("http://localhost:5000/patient/doctors");
       setDoctors(res.data);
     } catch (err) {
-      message.error("Failed to fetch doctors");
+      message.error("Failed to load doctors.");
     }
   };
 
-  const handleAddAppointment = async () => {
-    if (!selectedPatientId || !selectedDoctorId || !newDate) {
-      return message.warning("Please fill all fields");
+  const fetchPatients = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/patient/all");
+      setPatients(res.data);
+    } catch (err) {
+      message.error("Failed to load patients.");
+    }
+  };
+
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    try {
+      await axios.patch(`http://localhost:5000/staff/appointments/status/${id}`, {
+        status: newStatus,
+      });
+      message.success("Status updated");
+      fetchAppointments();
+    } catch (err) {
+      console.error(err);
+      message.error("Status update failed");
+    }
+  };
+
+  const filterData = () => {
+    let data = [...appointments];
+
+    if (viewFilter === "Today") {
+      const today = moment().format("YYYY-MM-DD");
+      data = data.filter((a) => a.appointmentDate.startsWith(today));
     }
 
-    try {
-      await axios.post(`${API_BASE}/appointments`, {
-        patientId: selectedPatientId,
-        doctorId: selectedDoctorId,
-        appointmentDate: newDate,
-      });
+    if (doctorFilter) {
+      data = data.filter((a) => a.doctorName.includes(doctorFilter));
+    }
+    if (statusFilter) {
+      data = data.filter((a) => a.appointmentStatus === statusFilter);
+    }
+    if (dateFilter) {
+      data = data.filter((a) => a.appointmentDate.startsWith(dateFilter));
+    }
+    if (patientSearch) {
+      data = data.filter((a) =>
+        a.patientName.toLowerCase().includes(patientSearch.toLowerCase())
+      );
+    }
 
+    setFiltered(data);
+  };
+
+  useEffect(() => {
+    filterData();
+  }, [appointments, viewFilter, doctorFilter, statusFilter, dateFilter, patientSearch]);
+
+  const handleCreateAppointment = async (values: any) => {
+    const data = {
+      patientId: values.patientId,
+      doctorId: values.doctorId,
+      appointmentDate: values.appointmentDate.format("YYYY-MM-DD"),
+      appointmentStatus: values.appointmentStatus,
+      notes: values.notes || "",
+    };
+
+    try {
+      await axios.post("http://localhost:5000/staff/appointments", data);
       message.success("Appointment created");
+      form.resetFields();
+      setIsModalOpen(false);
       fetchAppointments();
-      setSelectedPatientId("");
-      setSelectedDoctorId("");
-      setNewDate("");
     } catch (err) {
-      message.error("Failed to create appointment");
+      console.error(err);
+      message.error("Failed to create appointment.");
     }
   };
 
-  const toggleCheckIn = async (id: number, currentStatus: string) => {
-    const appt = appointments.find((a) => a.id === id);
-    if (!appt) return message.error("Appointment not found");
-
-    const newStatus = currentStatus === "Scheduled" ? "Completed" : "Scheduled";
-
-    try {
-      await axios.put(`${API_BASE}/appointments/${id}`, {
-        appointmentDate: appt.appointmentDate || null,
-        appointmentStatus: newStatus,
-        notes: appt.notes ?? null,
-      });
-
-      fetchAppointments();
-    } catch (err) {
-      message.error("Failed to update appointment status");
-    }
-  };
-
-  const cancelAppointment = async (id: number) => {
-    if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
-
-    try {
-      await axios.delete(`${API_BASE}/appointments/${id}`);
-      fetchAppointments();
-    } catch (err) {
-      message.error("Failed to cancel appointment");
-    }
-  };
-
-  const rescheduleAppointment = async (id: number) => {
-    const newDate = prompt("Enter new date/time (YYYY-MM-DDTHH:mm):");
-    if (!newDate) return;
-    const dateObj = new Date(newDate);
-    if (isNaN(dateObj.getTime())) return message.warning("Invalid date format");
-
-    try {
-      await axios.put(`${API_BASE}/appointments/${id}`, {
-        appointmentDate: newDate,
-      });
-      fetchAppointments();
-    } catch (err) {
-      message.error("Failed to reschedule appointment");
-    }
-  };
-
-  const getPatientName = (id?: number) => patients.find((p) => p.id === id)?.name || "N/A";
-  const getDoctorName = (id?: number) => doctors.find((d) => d.id === id)?.name || "N/A";
+  const columns = [
+    {
+      title: "Patient",
+      dataIndex: "patientName",
+    },
+    {
+      title: "Doctor",
+      dataIndex: "doctorName",
+    },
+    {
+      title: "Date",
+      dataIndex: "appointmentDate",
+    },
+    {
+      title: "Status",
+      dataIndex: "appointmentStatus",
+      render: (status: string, record: Appointment) => (
+        <Select
+          value={status}
+          onChange={(val) => handleStatusChange(record.id, val)}
+          style={{ width: 120 }}
+        >
+          {["Scheduled", "Completed", "Cancelled"].map((s) => (
+            <Option key={s} value={s}>
+              <Tag color={statusColors[s]}>{s}</Tag>
+            </Option>
+          ))}
+        </Select>
+      ),
+    },
+    {
+      title: "Notes",
+      dataIndex: "notes",
+    },
+  ];
 
   return (
     <Layout>
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Appointment Management</h1>
+      <div style={{ padding: 20 }}>
+        <h2 className="text-3xl font-bold mb-6">Appointment Management</h2>
 
-        <div className="mb-6 bg-white shadow rounded p-6">
-          <h2 className="text-xl font-semibold mb-4">➕ Schedule New Appointment</h2>
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          <Select
+            defaultValue="Today"
+            onChange={(val: "Today" | "All") => setViewFilter(val)}
+            style={{ width: 150 }}
+          >
+            <Option value="Today">Today</Option>
+            <Option value="All">All</Option>
+          </Select>
 
-          <div className="flex flex-wrap gap-4 items-center mb-4">
-            <Select
-              showSearch
-              placeholder="Select Patient"
-              optionFilterProp="children"
-              value={selectedPatientId || undefined}
-              onChange={(value) => setSelectedPatientId(value)}
-              style={{ minWidth: 200 }}
-              filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {patients.map((p) => (
-                <Option key={p.id} value={p.id}>
-                  {p.name}
-                </Option>
-              ))}
-            </Select>
+          <Select
+            allowClear
+            placeholder="Filter by doctor"
+            onChange={(val) => setDoctorFilter(val)}
+            style={{ width: 200 }}
+          >
+            {[...new Set(appointments.map((a) => a.doctorName))].map((name) => (
+              <Option key={name} value={name}>
+                {name}
+              </Option>
+            ))}
+          </Select>
 
-            <Select
-              showSearch
-              placeholder="Select Doctor"
-              optionFilterProp="children"
-              value={selectedDoctorId || undefined}
-              onChange={(value) => setSelectedDoctorId(value)}
-              style={{ minWidth: 200 }}
-              filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {doctors.map((d) => (
-                <Option key={d.id} value={d.id}>
-                  {d.name}
-                </Option>
-              ))}
-            </Select>
+          <Select
+            allowClear
+            placeholder="Filter by status"
+            onChange={(val) => setStatusFilter(val)}
+            style={{ width: 150 }}
+          >
+            <Option value="Scheduled">Scheduled</Option>
+            <Option value="Completed">Completed</Option>
+            <Option value="Cancelled">Cancelled</Option>
+          </Select>
 
-            <Input
-              type="datetime-local"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              style={{ minWidth: 200 }}
-            />
+          <DatePicker
+            allowClear
+            placeholder="Filter by date"
+            onChange={(date) =>
+              setDateFilter(date ? moment(date).format("YYYY-MM-DD") : "")
+            }
+          />
 
-            <Button type="primary" onClick={handleAddAppointment}>
-              Schedule
-            </Button>
-          </div>
+          <Search
+            placeholder="Search by patient name"
+            onChange={(e) => setPatientSearch(e.target.value)}
+            style={{ width: 200 }}
+            allowClear
+          />
+
+          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+            ➕ Create Appointment
+          </Button>
         </div>
 
-        <div className="bg-white shadow rounded p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Appointments</h2>
-            <div>
-              <label className="mr-2 font-medium">Show:</label>
-              <select
-                className="border px-3 py-1 rounded"
-                value={showTodayOnly ? "today" : "all"}
-                onChange={(e) => setShowTodayOnly(e.target.value === "today")}
-              >
-                <option value="today">Today's Appointments</option>
-                <option value="all">All Appointments</option>
-              </select>
-            </div>
-          </div>
+        <Table
+          columns={columns}
+          dataSource={filtered}
+          rowKey="id"
+          pagination={{ pageSize: 8 }}
+        />
 
-          {appointments.length === 0 ? (
-            <p>No appointments found.</p>
-          ) : (
-            <table className="w-full table-auto border-collapse border border-gray-300">
-              <thead>
-                <tr>
-                  <th className="border border-gray-300 px-4 py-2">Patient</th>
-                  <th className="border border-gray-300 px-4 py-2">Doctor</th>
-                  <th className="border border-gray-300 px-4 py-2">Date & Time</th>
-                  <th className="border border-gray-300 px-4 py-2">Status</th>
-                  <th className="border border-gray-300 px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((appt) => (
-                  <tr key={appt.id}>
-                    <td className="border border-gray-300 px-4 py-2">{getPatientName(appt.patientId)}</td>
-                    <td className="border border-gray-300 px-4 py-2">{getDoctorName(appt.doctorId)}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      {new Date(appt.appointmentDate).toLocaleString()}
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{appt.appointmentStatus}</td>
-                    <td className="border border-gray-300 px-4 py-2 space-x-2 text-center">
-                      <button
-                        onClick={() => toggleCheckIn(appt.id, appt.appointmentStatus)}
-                        className="bg-green-500 px-2 py-1 rounded hover:bg-green-600 text-white"
-                      >
-                        {appt.appointmentStatus === "Scheduled" ? "Check In" : "Undo Check-In"}
-                      </button>
-                      <button
-                        onClick={() => rescheduleAppointment(appt.id)}
-                        className="bg-yellow-400 px-2 py-1 rounded hover:bg-yellow-500"
-                      >
-                        Reschedule
-                      </button>
-                      <button
-                        onClick={() => cancelAppointment(appt.id)}
-                        className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                      >
-                        Cancel
-                      </button>
-                    </td>
-                  </tr>
+        <Modal
+          title="Create Appointment"
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          footer={null}
+        >
+          <Form layout="vertical" form={form} onFinish={handleCreateAppointment}>
+            <Form.Item
+              name="patientId"
+              label="Patient"
+              rules={[{ required: true, message: "Please select a patient" }]}
+            >
+              <Select placeholder="Select patient">
+                {patients.map((p) => (
+                  <Option key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </Option>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="doctorId"
+              label="Doctor"
+              rules={[{ required: true, message: "Please select a doctor" }]}
+            >
+              <Select placeholder="Select doctor">
+                {doctors.map((d) => (
+                  <Option key={d.id} value={d.id}>
+                    {d.firstName} {d.lastName}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="appointmentDate"
+              label="Appointment Date & Time"
+              rules={[{ required: true, message: "Please pick a date & time" }]}
+            >
+              <DatePicker
+                showTime
+                format="YYYY-MM-DD HH:mm"
+                style={{ width: "100%" }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="appointmentStatus"
+              label="Status"
+              rules={[{ required: true, message: "Please select status" }]}
+              initialValue="Scheduled"
+            >
+              <Select>
+                <Option value="Scheduled">Scheduled</Option>
+                <Option value="Completed">Completed</Option>
+                <Option value="Cancelled">Cancelled</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="notes" label="Notes">
+              <TextArea rows={3} />
+            </Form.Item>
+
+            <Form.Item>
+              <Button type="primary" htmlType="submit" block>
+                Create Appointment
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
       </div>
     </Layout>
   );
 };
 
-export default Appointment;
+export default Appointments;
