@@ -11,6 +11,8 @@ const StaffRoutes=require('./src/routes/StaffRoutes');
 const chatRoutes = require("./src/controllers/ChatControllers");
 const app = express();
 
+app.use(cors());
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname,'src','uploads')));

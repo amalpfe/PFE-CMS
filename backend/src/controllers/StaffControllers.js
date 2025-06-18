@@ -1,8 +1,10 @@
 const db = require('../../config');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const moment = require('moment'); // If not already installed: npm install moment
 
 const JWT_SECRET = process.env.JWT_SECRET; // Make sure it's defined in your .env file
+
 
 exports.createStaff = async (req, res) => {
   const {
@@ -58,7 +60,6 @@ exports.loginStaff = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // استعلام عن الموظف عبر الإيميل
     const [rows] = await db.execute("SELECT * FROM staff WHERE email = ?", [email]);
 
     if (rows.length === 0) {
@@ -67,24 +68,18 @@ exports.loginStaff = async (req, res) => {
 
     const staff = rows[0];
 
-    // المقارنة باستخدام bcrypt
-    // const isMatch = await bcrypt.compare(password, staff.passwordHash);
-
-    // لو حابب تجربة بدون تشفير مؤقتًا (غير مستحسن للأمان)، استخدم:
-  const isMatch = password === staff.passwordHash;
+    const isMatch = await bcrypt.compare(password, staff.passwordHash);
 
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    // إنشاء التوكن
     const token = jwt.sign(
       { id: staff.id, role: "Staff", username: staff.username },
       JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // استبعاد كلمة السر من البيانات التي نرسلها للعميل
     const { passwordHash, ...staffData } = staff;
 
     res.status(200).json({
@@ -97,6 +92,7 @@ exports.loginStaff = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.getTotalAppointmentsToday = async (req, res) => {
   try {
@@ -175,7 +171,6 @@ exports.getAvailableDoctors = async (req, res) => {
   }
 };
 
-
 // Create appointment
 exports.getDoctorAvailability = async (req, res) => {
   const { doctorId } = req.params;
@@ -192,7 +187,6 @@ exports.getDoctorAvailability = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch doctor availability' });
   }
 };
-
 
 // Get all appointments (optional filters: patientId, doctorId, status)
 exports.getAppointments = async (req, res) => {
@@ -233,8 +227,6 @@ exports.getAppointments = async (req, res) => {
   }
 };
 
-
-
 // Get appointment by IDs
 exports. getAppointmentById = async (req, res) => {
   const { id } = req.params;
@@ -247,7 +239,6 @@ exports. getAppointmentById = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch appointment' });
   }
 };
-
 // Update appointment (reschedule, check-in, cancel, notes)
 exports.updateAppointment = async (req, res) => {
   const { id } = req.params;
@@ -285,7 +276,7 @@ exports.deleteAppointment = async (req, res) => {
 
 exports.getPatients = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT id,firstname FROM patient');
+    const [rows] = await db.query('SELECT id, firstName, lastName FROM patient');
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -295,13 +286,14 @@ exports.getPatients = async (req, res) => {
 
 exports.getDoctors = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT id, firstname FROM doctor');
+    const [rows] = await db.query('SELECT id, firstName, lastName FROM doctor');
     res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching doctors' });
   }
 };
+
 
 
 // // GET all invoices
@@ -506,20 +498,61 @@ exports.get = async (req, res) => {
   // similar to list but with WHERE id
 };
 
+
+
+
 exports.create = async (req, res) => {
   const { patientId, doctorId, appointmentDate, notes, appointmentStatus } = req.body;
+
   try {
-    await db.execute(`
-      INSERT INTO appointment
-        (patientId, doctorId, appointmentDate, notes, appointmentStatus)
-      VALUES (?, ?, ?, ?, ?)
-    `, [patientId, doctorId, appointmentDate, notes, appointmentStatus]);
-    res.status(201).json({ message: "Created" });
+    // ✅ Use strict parsing with ISO 8601
+    const appointmentMoment = moment(appointmentDate, moment.ISO_8601, true);
+    if (!appointmentMoment.isValid()) {
+      return res.status(400).json({ message: "Invalid appointment date format. Use ISO 8601." });
+    }
+
+    const dayOfWeek = appointmentMoment.format("dddd"); // e.g., "Monday"
+    const time = appointmentMoment.format("HH:mm:ss");  // e.g., "14:30:00"
+
+    // ✅ Check if doctor is available on that day/time
+    const [availability] = await db.execute(
+      `SELECT * FROM doctoravailability
+       WHERE doctorId = ? AND dayOfWeek = ? AND startTime <= ? AND endTime > ?`,
+      [doctorId, dayOfWeek, time, time]
+    );
+
+    if (availability.length === 0) {
+      return res.status(400).json({ message: "Doctor is not available at the selected time." });
+    }
+
+    // ✅ Check for overlapping appointments
+    const [conflict] = await db.execute(
+      `SELECT * FROM appointment
+       WHERE doctorId = ? AND appointmentDate = ?`,
+      [doctorId, appointmentDate]
+    );
+
+    if (conflict.length > 0) {
+      return res.status(400).json({ message: "Doctor already has an appointment at this time." });
+    }
+
+    // ✅ Create the appointment
+    await db.execute(
+      `INSERT INTO appointment
+       (patientId, doctorId, appointmentDate, notes, appointmentStatus)
+       VALUES (?, ?, ?, ?, ?)`,
+      [patientId, doctorId, appointmentDate, notes, appointmentStatus]
+    );
+
+    res.status(201).json({ message: "Appointment created successfully." });
+
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Create failed" });
   }
 };
+
+
 
 exports.update = async (req, res) => {
   const { id } = req.params;
@@ -550,5 +583,64 @@ exports.updateStatus = async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Update status failed" });
+  }
+};
+const dayOfWeekMap = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+// Controller: available-appointments.js
+exports.getAvailableAppointments = async (req, res) => {
+  try {
+    const [availabilities] = await db.execute(`SELECT 
+      d.id as doctorId, d.firstName as doctorName,
+      a.dayOfWeek, a.startTime, a.endTime
+      FROM doctor d
+      JOIN doctoravailability a ON d.id = a.doctorId`);
+
+    const today = new Date();
+    const result = [];
+
+    for (const slot of availabilities) {
+      const dayOffset = (dayOfWeekMap[slot.dayOfWeek] - today.getDay() + 7) % 7;
+      const date = new Date();
+      date.setDate(today.getDate() + dayOffset);
+
+      const start = new Date(date);
+      const [sh, sm] = slot.startTime.split(":").map(Number);
+      start.setHours(sh, sm, 0);
+
+      const end = new Date(date);
+      const [eh, em] = slot.endTime.split(":").map(Number);
+      end.setHours(eh, em, 0);
+
+      // Check if the slot is already taken
+      const [appointments] = await db.execute(`
+        SELECT * FROM appointment 
+        WHERE doctorId = ? AND appointmentDate BETWEEN ? AND ?`,
+        [slot.doctorId, start.toISOString(), end.toISOString()]
+      );
+
+      // If the slot is not taken, add to results
+      if (appointments.length === 0) {
+        result.push({
+          doctorName: slot.doctorName,
+          doctorId: slot.doctorId,
+          start,
+          end
+        });
+      }
+    }
+
+    res.json({ availableSlots: result });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch available appointments" });
   }
 };

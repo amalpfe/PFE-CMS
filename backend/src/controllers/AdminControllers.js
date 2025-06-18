@@ -40,7 +40,7 @@ exports.getRecentAppointments = async (req, res) => {
     const [rows] = await db.query(`
       SELECT 
         p.firstName AS patientName,
-        p.image AS patientImage,       -- ✅ أضفنا الصورة من جدول patient
+        p.image AS patientImage,  -- This is just the filename like "john.jpg"
         d.firstName AS doctorName,
         a.id,
         a.appointmentDate,
@@ -54,10 +54,10 @@ exports.getRecentAppointments = async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
- 
+
 
 // controllers/appointmentController.js
 exports.getAllAppointments = async (req, res) => {

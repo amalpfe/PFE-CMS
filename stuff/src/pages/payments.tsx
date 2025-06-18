@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, message, Modal, Select, Input, Space } from "antd";
-import Layout from "../components/Layout";
+import { useEffect, useState } from "react";
+import { Table, Button, message } from "antd";
 import axios from "axios";
+import Layout from "../components/Layout";
+
+import { Select, Input, Tag, Modal, Space } from 'antd';
 
 const { Option } = Select;
 const { Search } = Input;
