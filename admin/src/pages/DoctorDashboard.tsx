@@ -82,7 +82,7 @@ const Dashboard = () => {
     try {
       const res = await axios.get(`http://localhost:5000/doctor/${doctorId}/appointments/detailed`);
       const transformed = res.data
-        .filter((item: any) => item.status === "Scheduled") // ✅ Only scheduled appointments
+        .filter((item: any) => item.status === "Scheduled") // Only scheduled appointments
         .map((item: any) => ({
           id: item.id,
           patientId: item.patientId ?? 0,
@@ -106,7 +106,7 @@ const Dashboard = () => {
   const handleSelectEvent = (event: RBCEvent) => {
     const customEvent = event as CustomEvent;
     if (customEvent.patientId) {
-      navigate(`/doctor/patient/${customEvent.patientId}`);
+      navigate(`/doctor/patients/${event.patientId}`);
     } else {
       console.error("No patientId found in event");
     }
@@ -153,12 +153,12 @@ const Dashboard = () => {
                 {bookings.length === 0 ? (
                   <p className="text-gray-400 text-center py-4">No recent bookings</p>
                 ) : (
-                  bookings.slice(0, 5).map((booking) => (
-                    <div
-                      key={booking.patientId}
-                      className="flex justify-between items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
-                      onClick={() => booking.patientId && navigate(`/doctor/patient/${booking.patientId}`)}
-                    >
+                  bookings.slice(0, 5).map((booking, index) => (
+  <div
+    key={booking.id ?? `${booking.patientId}-${booking.date}-${index}`}
+    className="flex justify-between items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+    onClick={() => booking.patientId && navigate(`/doctor/patients/${booking.patientId}`)}
+  >
                       <div className="flex items-center space-x-3">
                         {booking.image ? (
                           <img

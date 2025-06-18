@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Table,
@@ -67,7 +67,6 @@ const DoctorList = () => {
     fetchDoctors();
   }, []);
 
-  // استخراج جميع الاختصاصات المتوفرة (بدون تكرار)
   const specialties = Array.from(
     new Set(doctors.map((doc) => doc.specialty))
   ).sort();
@@ -150,7 +149,7 @@ const DoctorList = () => {
         <Image
           width={50}
           height={50}
-          src={image || "https://via.placeholder.com/100"}
+          src={image || "/images/placeholder.png"}
           alt="doctor"
           style={{ borderRadius: "50%" }}
           preview={false}
@@ -271,7 +270,7 @@ const DoctorList = () => {
           }}
           okText="Save Changes"
           cancelText="Cancel"
-          destroyOnClose
+          destroyOnHidden
         >
           <Form form={form} layout="vertical">
             <Form.Item
@@ -333,14 +332,14 @@ const DoctorList = () => {
             </Button>,
           ]}
           width={600}
-          destroyOnClose
+          destroyOnHidden
         >
           {viewingDoctor && (
             <Space size="large" direction="horizontal" style={{ width: "100%" }}>
               <Image
                 width={150}
                 height={150}
-                src={viewingDoctor.image || "https://via.placeholder.com/150"}
+                src={viewingDoctor.image || "/images/placeholder.png"}
                 alt="doctor"
                 style={{ borderRadius: 8 }}
                 preview={false}

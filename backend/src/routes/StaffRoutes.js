@@ -35,4 +35,9 @@ router.post("/appointments", StaffController.create);
 router.put("/appointments/:id", StaffController.update);
 router.put("/appointments/:id/status", StaffController.updateStatus);
 router.post("/create", StaffController.createStaff);
+
+router.get('/available-appointments', StaffController.getAvailableAppointments);
+
+module.exports = router;
+
 module.exports = router;

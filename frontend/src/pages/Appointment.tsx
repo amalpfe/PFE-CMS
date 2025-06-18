@@ -2,7 +2,6 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import verifiedIcon from "../assets/verified_icon.svg";
-import infoIcon from "../assets/info_icon.svg"; // eslint-disable-line
 import { FaStar } from "react-icons/fa";
 import RelatedDoctors from "../components/RelatedDoctors";
 import { AppContext } from "../context/AppContext";
@@ -184,11 +183,12 @@ useEffect(() => {
     <div className="p-4 sm:p-8 bg-gray-50">
       <div className="flex flex-col sm:flex-row gap-6">
         <img
-          src={
-            docInfo.image.startsWith("data:")
-              ? docInfo.image
-              : `data:image/png;base64,${docInfo.image}`
-          }
+        src={
+  typeof docInfo.image === "string" && docInfo.image.startsWith("data:")
+    ? docInfo.image
+    : `data:image/png;base64,${docInfo.image || ""}`
+}
+
           alt="doctor"
           className="w-44 h-44 object-cover rounded-lg border"
         />
@@ -288,7 +288,7 @@ useEffect(() => {
       </div>
 
       <div className="mt-10">
-        <RelatedDoctors speciality={docInfo.specialty} excludeId={docInfo.id} />
+        <RelatedDoctors speciality={docInfo.specialty} docId={docInfo.id} />
       </div>
     </div>
   );

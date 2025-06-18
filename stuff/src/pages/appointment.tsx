@@ -1,4 +1,3 @@
-// src/pages/Appointments.tsx
 import { useEffect, useState } from "react";
 import {
   Table,
@@ -10,16 +9,16 @@ import {
   Modal,
   Form,
   Input,
+  Radio,
+  Space,
 } from "antd";
 import axios from "axios";
 import moment from "moment";
 import Layout from "../components/Layout";
 import dayjs from "dayjs";
 
-
 const { Option } = Select;
-const { TextArea } = Input;
-const { Search } = Input;
+const { TextArea, Search } = Input;
 
 interface Appointment {
   id: number;
@@ -44,6 +43,13 @@ interface Doctor {
   lastName: string;
 }
 
+interface AvailableSlot {
+  doctorId: number;
+  doctorName: string;
+  start: string;
+  end: string;
+}
+
 const statusColors: Record<string, string> = {
   Scheduled: "blue",
   Completed: "green",
@@ -64,6 +70,10 @@ const Appointments = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
 
+  // Available slots for create appointment form
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
   useEffect(() => {
     fetchAppointments();
     fetchDoctors();
@@ -83,18 +93,20 @@ const Appointments = () => {
 
   const fetchDoctors = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/patient/doctors");
+      const res = await axios.get("http://localhost:5000/staff/doctors");
       setDoctors(res.data);
     } catch (err) {
+      console.error(err);
       message.error("Failed to load doctors.");
     }
   };
 
   const fetchPatients = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/patient/all");
+      const res = await axios.get("http://localhost:5000/staff/patients");
       setPatients(res.data);
     } catch (err) {
+      console.error(err);
       message.error("Failed to load patients.");
     }
   };
@@ -143,10 +155,11 @@ const Appointments = () => {
   }, [appointments, viewFilter, doctorFilter, statusFilter, dateFilter, patientSearch]);
 
   const handleCreateAppointment = async (values: any) => {
+      const isoDate = values.appointmentDate.toISOString();
     const data = {
       patientId: values.patientId,
       doctorId: values.doctorId,
-      appointmentDate: values.appointmentDate.format("YYYY-MM-DD"),
+       appointmentDate: isoDate,
       appointmentStatus: values.appointmentStatus,
       notes: values.notes || "",
     };
@@ -155,12 +168,37 @@ const Appointments = () => {
       await axios.post("http://localhost:5000/staff/appointments", data);
       message.success("Appointment created");
       form.resetFields();
+      setAvailableSlots([]);
       setIsModalOpen(false);
       fetchAppointments();
     } catch (err) {
       console.error(err);
       message.error("Failed to create appointment.");
     }
+  };
+
+  const getFullName = (firstName: string, lastName?: string) =>
+    `${firstName ?? ""} ${lastName ?? ""}`.trim();
+
+  // Fetch available slots when modal opens (Create Appointment)
+  const openCreateModal = async () => {
+    setIsModalOpen(true);
+    setLoadingSlots(true);
+    try {
+      const res = await axios.get("http://localhost:5000/staff/available-appointments");
+      setAvailableSlots(res.data.availableSlots);
+    } catch (err) {
+      message.error("Failed to load available appointment slots.");
+    }
+    setLoadingSlots(false);
+  };
+
+  // When user selects a slot, auto fill form fields for doctor and appointmentDate
+  const onSlotSelect = (slot: AvailableSlot) => {
+    form.setFieldsValue({
+      doctorId: slot.doctorId,
+      appointmentDate: dayjs(slot.start),
+    });
   };
 
   const columns = [
@@ -175,6 +213,7 @@ const Appointments = () => {
     {
       title: "Date",
       dataIndex: "appointmentDate",
+      render: (text: string) => moment(text).format("YYYY-MM-DD HH:mm"),
     },
     {
       title: "Status",
@@ -204,7 +243,14 @@ const Appointments = () => {
       <div style={{ padding: 20 }}>
         <h2 className="text-3xl font-bold mb-6">Appointment Management</h2>
 
-        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            marginBottom: 20,
+            flexWrap: "wrap",
+          }}
+        >
           <Select
             defaultValue="Today"
             onChange={(val: "Today" | "All") => setViewFilter(val)}
@@ -238,7 +284,6 @@ const Appointments = () => {
             <Option value="Cancelled">Cancelled</Option>
           </Select>
 
-
           <DatePicker
             allowClear
             placeholder="Filter by date"
@@ -247,7 +292,6 @@ const Appointments = () => {
             }
           />
 
-
           <Search
             placeholder="Search by patient name"
             onChange={(e) => setPatientSearch(e.target.value)}
@@ -255,7 +299,7 @@ const Appointments = () => {
             allowClear
           />
 
-          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+          <Button type="primary" onClick={openCreateModal} loading={loadingSlots}>
             ➕ Create Appointment
           </Button>
         </div>
@@ -267,11 +311,17 @@ const Appointments = () => {
           pagination={{ pageSize: 8 }}
         />
 
+        {/* Create Appointment Modal */}
         <Modal
           title="Create Appointment"
           open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => {
+            setIsModalOpen(false);
+            form.resetFields();
+            setAvailableSlots([]);
+          }}
           footer={null}
+          width={700}
         >
           <Form layout="vertical" form={form} onFinish={handleCreateAppointment}>
             <Form.Item
@@ -282,11 +332,40 @@ const Appointments = () => {
               <Select placeholder="Select patient">
                 {patients.map((p) => (
                   <Option key={p.id} value={p.id}>
-                    {p.firstName} {p.lastName}
+                    {getFullName(p.firstName, p.lastName)}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
+
+            {/* Available slots selection */}
+            {availableSlots.length > 0 && (
+              <Form.Item label="Select Available Slot (optional)">
+                <Radio.Group
+                  style={{ maxHeight: 150, overflowY: "auto", display: "block" }}
+                  onChange={(e) => {
+                    const slot = availableSlots.find(
+                      (s) =>
+                        `${s.doctorId}-${s.start}` === e.target.value
+                    );
+                    if (slot) onSlotSelect(slot);
+                  }}
+                >
+                  <Space direction="vertical">
+                    {availableSlots.map((slot) => (
+                      <Radio
+                        key={`${slot.doctorId}-${slot.start}`}
+                        value={`${slot.doctorId}-${slot.start}`}
+                      >
+                        Dr. {slot.doctorName} |{" "}
+                        {moment(slot.start).format("YYYY-MM-DD HH:mm")} -{" "}
+                        {moment(slot.end).format("HH:mm")}
+                      </Radio>
+                    ))}
+                  </Space>
+                </Radio.Group>
+              </Form.Item>
+            )}
 
             <Form.Item
               name="doctorId"
@@ -296,7 +375,7 @@ const Appointments = () => {
               <Select placeholder="Select doctor">
                 {doctors.map((d) => (
                   <Option key={d.id} value={d.id}>
-                    {d.firstName} {d.lastName}
+                    {getFullName(d.firstName, d.lastName)}
                   </Option>
                 ))}
               </Select>

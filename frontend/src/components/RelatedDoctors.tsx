@@ -14,6 +14,7 @@ interface DoctorType {
 interface RelatedDoctorsProps {
   docId: number;
   speciality: string;
+  
 }
 
 const RelatedDoctors: React.FC<RelatedDoctorsProps> = ({ speciality, docId }) => {

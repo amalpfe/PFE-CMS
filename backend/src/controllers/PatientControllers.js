@@ -42,7 +42,6 @@ const handleSignup = async (req, res) => {
   }
 };
 
-
 //Handle user login
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -106,9 +105,11 @@ const getAllDoctors = async (req, res) => {
 
     const updatedResults = results.map((doc) => ({
       ...doc,
-      image: doc.image.startsWith("data:")
+      image: typeof doc.image === "string" && doc.image.startsWith("data:")
         ? doc.image
-        : `data:image/png;base64,${doc.image}`,
+        : doc.image
+          ? `data:image/png;base64,${doc.image}`
+          : null, // or use a placeholder URL here
     }));
 
     res.status(200).json(updatedResults);
@@ -117,6 +118,7 @@ const getAllDoctors = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch doctors", error: err });
   }
 };
+
 
 
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { Calendar } from "react-big-calendar";
+import { Calendar,type View } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { localizer } from "../utils/localizer"; // تأكد من هذا الملف موجود ومهيأ بالmoment أو date-fns
 
@@ -14,11 +14,6 @@ type DoctorAvailability = {
   endTime: string;
 };
 
-type DoctorGroupedAvailability = {
-  doctorId: number;
-  doctorName: string;
-  availabilities: DoctorAvailability[];
-};
 
 interface CalendarEvent {
   title: string;
@@ -44,7 +39,8 @@ const Dashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState<number | null>(null);
   const [availableDoctors, setAvailableDoctors] = useState<DoctorAvailability[] | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-
+  const [currentDate, setCurrentDate] = useState(new Date());
+    const [view, setView] = useState<View>("week"); 
   useEffect(() => {
     // دالة مساعدة لقراءة القيمة حسب اسم الحقل الصحيح من الريسبونس
     const fetchStat = async (
@@ -139,28 +135,38 @@ const Dashboard = () => {
         <div className="bg-white shadow rounded p-6">
           <h2 className="text-xl font-semibold mb-4">Doctor Availability Calendar</h2>
           <div className="h-[500px]">
-            <Calendar
-              localizer={localizer}
-              events={calendarEvents}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: "100%", width: "100%" }}
-              selectable={true}
-              onSelectSlot={(slotInfo) => {
-                const selectedDate = slotInfo.start;
-                const filteredEvents = calendarEvents.filter(event =>
-                  event.start.toDateString() === selectedDate.toDateString()
-                );
-                alert(
-                  filteredEvents.length > 0
-                    ? `Doctors on ${selectedDate.toDateString()}:\n` + filteredEvents.map(e => e.title).join("\n")
-                    : `No doctors available on ${selectedDate.toDateString()}`
-                );
-              }}
-              onSelectEvent={(event) => {
-                alert(`Selected: ${event.title}\nTime: ${event.start.toLocaleTimeString()} - ${event.end.toLocaleTimeString()}`);
-              }}
-            />
+          <Calendar
+  localizer={localizer}
+  events={calendarEvents}
+  startAccessor="start"
+  endAccessor="end"
+  selectable={true}
+  date={currentDate}
+  view={view}
+  onView={(view) => setView(view)}
+  onNavigate={(date) => setCurrentDate(date)}
+
+  onSelectSlot={(slotInfo) => {
+    // Find doctors available in the clicked slot time range
+    const availableDocs = calendarEvents.filter(event => 
+      event.start <= slotInfo.end && event.end >= slotInfo.start
+    );
+
+    if (availableDocs.length > 0) {
+      const docNames = availableDocs.map(d => d.title).join(", ");
+      alert(`Doctors available at this time:\n${docNames}`);
+    } else {
+      alert("No doctors available at this time.");
+    }
+  }}
+
+  onSelectEvent={(event) => {
+    alert(`Doctor: ${event.title}\nAvailable from: ${event.start.toLocaleTimeString()} to ${event.end.toLocaleTimeString()}`);
+  }}
+
+  style={{ height: 500 }}
+/>
+
           </div>
         </div>
       </div>
