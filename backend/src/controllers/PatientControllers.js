@@ -98,6 +98,7 @@ const getAllDoctors = async (req, res) => {
       specialty AS speciality, 
       image 
     FROM doctor
+    WHERE isActive = 1
   `;
 
   try {
@@ -105,11 +106,12 @@ const getAllDoctors = async (req, res) => {
 
     const updatedResults = results.map((doc) => ({
       ...doc,
-      image: typeof doc.image === "string" && doc.image.startsWith("data:")
-        ? doc.image
-        : doc.image
+      image:
+        typeof doc.image === "string" && doc.image.startsWith("data:")
+          ? doc.image
+          : doc.image
           ? `data:image/png;base64,${doc.image}`
-          : null, // or use a placeholder URL here
+          : null, // fallback if needed
     }));
 
     res.status(200).json(updatedResults);
@@ -118,6 +120,7 @@ const getAllDoctors = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch doctors", error: err });
   }
 };
+
 
 
 
@@ -637,9 +640,28 @@ const getDoctorAppointments = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch appointments" });
   }
 };
+const getPatientById = async (req, res) => {
+  try {
+    const [rows] = await db.execute("SELECT * FROM patient WHERE id = ?", [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ message: "Patient not found" });
+
+    const user = rows[0];
+    
+    // تأكد أن الصورة تبدأ بـ data:image إذا مش موجودة
+    if (user.image && !user.image.startsWith("data:image")) {
+      user.image = `data:image/jpeg;base64,${user.image}`;
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching patient:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   handleSignup,
+  getPatientById,
   handleLogin,
   getAllDoctors,
   getDoctorDetails,

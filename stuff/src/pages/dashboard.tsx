@@ -115,10 +115,10 @@ const Dashboard = () => {
             <p className="text-4xl font-bold">{renderCount(totalAppointmentsToday)}</p>
           </div>
 
-          <div className="bg-white shadow rounded p-5">
+          {/* <div className="bg-white shadow rounded p-5">
             <h2 className="text-lg font-semibold mb-2">Checked-in Patients</h2>
             <p className="text-4xl font-bold">{renderCount(checkedInPatients)}</p>
-          </div>
+          </div> */}
 
           <div className="bg-white shadow rounded p-5">
             <h2 className="text-lg font-semibold mb-2">Pending Payments</h2>

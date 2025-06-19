@@ -14,7 +14,7 @@ interface Appointment {
   age?: number;
   fees?: string;
   notes?: string;
-  patientImage?: string;
+  patientImage?: string; // ممكن تكون base64 أو اسم ملف
 }
 
 const AppointmentCalendar = () => {
@@ -110,6 +110,12 @@ const AppointmentCalendar = () => {
     }
   };
 
+  const getImageUrl = (img?: string): string => {
+    if (!img) return "https://via.placeholder.com/32";
+    if (img.startsWith("data:image")) return img;
+    return `http://localhost:5000/uploads/${img}`;
+  };
+
   const columns = [
     {
       title: "#",
@@ -123,11 +129,7 @@ const AppointmentCalendar = () => {
       render: (text: string, record: Appointment) => (
         <Space>
           <img
-            src={
-              record.patientImage
-                ? `http://localhost:5000/uploads/${record.patientImage}`
-                : "https://via.placeholder.com/32"
-            }
+            src={getImageUrl(record.patientImage)}
             alt="avatar"
             className="w-8 h-8 rounded-full object-cover"
           />
@@ -160,7 +162,7 @@ const AppointmentCalendar = () => {
           <Button
             danger
             type="link"
-            onClick={() => handleCancel(record.id)}
+            onClick={() => showCancelConfirmation(record.id)}
           >
             Cancel
           </Button>

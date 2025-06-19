@@ -5,6 +5,9 @@ const moment = require('moment'); // If not already installed: npm install momen
 
 const JWT_SECRET = process.env.JWT_SECRET; // Make sure it's defined in your .env file
 
+const crypto = require("crypto");
+
+const nodemailer = require("nodemailer");
 
 exports.createStaff = async (req, res) => {
   const {
@@ -13,10 +16,9 @@ exports.createStaff = async (req, res) => {
     phoneNumber,
     email,
     username,
-    password,
     dateOfBirth,
     hiringDate,
-    image,
+    image, // base64 string expected
   } = req.body;
 
   try {
@@ -25,18 +27,21 @@ exports.createStaff = async (req, res) => {
       "SELECT id FROM staff WHERE username = ? OR email = ?",
       [username, email]
     );
+
     if (existing.length > 0) {
       return res.status(409).json({ message: "Username or email already exists." });
     }
 
-    // Hash the password before storing
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Generate random password
+    const generatedPassword = crypto.randomBytes(6).toString("hex"); // 12 characters
+    const passwordHash = await bcrypt.hash(generatedPassword, 10);
 
     // Insert new staff
     await db.execute(
-      `INSERT INTO staff
-      (firstName, lastName, phoneNumber, email, username, passwordHash, dateOfBirth, hiringDate, image)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO staff (
+        firstName, lastName, phoneNumber, email, username,
+        passwordHash, dateOfBirth, hiringDate, image, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         firstName,
         lastName,
@@ -50,12 +55,31 @@ exports.createStaff = async (req, res) => {
       ]
     );
 
-    res.status(201).json({ message: "Staff member created successfully." });
+    // Send email with credentials
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"Aeternum" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Your Staff Account Credentials",
+      text: `Welcome ${firstName},\n\nYour staff account has been created.\n\nUsername: ${username}\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password as soon as possible.\n\nBest regards,\nAmoula lhaboula`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(201).json({ message: "Staff member created and credentials sent via email." });
   } catch (error) {
     console.error("Error creating staff:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
 exports.loginStaff = async (req, res) => {
   const { email, password } = req.body;
 
@@ -68,7 +92,8 @@ exports.loginStaff = async (req, res) => {
 
     const staff = rows[0];
 
-    const isMatch = await bcrypt.compare(password, staff.passwordHash);
+  const isMatch = await bcrypt.compare(password, staff.passwordHash);
+
 
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
@@ -97,13 +122,17 @@ exports.loginStaff = async (req, res) => {
 exports.getTotalAppointmentsToday = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT COUNT(*) AS count FROM appointment WHERE DATE(appointmentDate) = CURDATE()"
+      `SELECT COUNT(*) AS count 
+       FROM appointment 
+       WHERE DATE(appointmentDate) = CURDATE() 
+       AND appointmentStatus != 'Cancelled'`
     );
     res.json({ totalAppointmentsToday: rows[0].count });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 exports.getCheckedInPatients = async (req, res) => {
   try {
@@ -294,6 +323,45 @@ exports.getDoctors = async (req, res) => {
   }
 };
 
+// In StaffController.js or equivalent
+exports.updateAppointmentStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const validStatuses = ["Scheduled", "Completed", "Cancelled"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  try {
+    const [existingRows] = await db.execute(
+      "SELECT appointmentStatus FROM appointment WHERE id = ?",
+      [id]
+    );
+
+    if (existingRows.length === 0) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const currentStatus = existingRows[0].appointmentStatus;
+
+    // Prevent further updates if already Completed or Cancelled
+    if (currentStatus === "Completed" || currentStatus === "Cancelled") {
+      return res.status(400).json({ message: `Cannot change status once it's ${currentStatus}` });
+    }
+
+    // Update status
+    await db.execute(
+      "UPDATE appointment SET appointmentStatus = ?, updatedAt = NOW() WHERE id = ?",
+      [status, id]
+    );
+
+    res.status(200).json({ message: "Status updated successfully" });
+  } catch (err) {
+    console.error("Failed to update appointment status:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 
 // // GET all invoices

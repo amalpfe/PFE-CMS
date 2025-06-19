@@ -11,6 +11,8 @@ router.post('/appointment', Controller.handleApp);
 router.post('/login', Controller.handleLogin);
 router.post("/review", Controller.addReview);
 router.post("/feedback", Controller.submitFeedback);
+router.get('/profile/:id', Controller.getPatientById);
+
 
 router.get('/doctors', Controller.getAllDoctors);
 router.get("/doctor/:id", Controller.getDoctorDetails);

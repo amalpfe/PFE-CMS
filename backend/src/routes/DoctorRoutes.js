@@ -57,4 +57,5 @@ router.get("/patient/:doctorId/patient/:patientId/medical-records", DoctorContro
 // POST route to create an appointment
 router.post('/appointments', DoctorController.createAppointment);
 router.get("/all", DoctorController.getAllDoctors);
+router.patch('/doctors/:id/toggle-active', DoctorController.toggleDoctorStatus);
 module.exports = router;

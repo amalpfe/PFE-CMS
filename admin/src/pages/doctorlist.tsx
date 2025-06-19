@@ -11,18 +11,18 @@ import {
   Typography,
   message,
   Select,
+  Tag,
 } from "antd";
 import {
   EditOutlined,
-  DeleteOutlined,
   EyeOutlined,
-  ExclamationCircleOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import Layout from "../components/Layout";
 
 const { Search } = Input;
 const { Title, Text } = Typography;
-const { confirm } = Modal;
 const { Option } = Select;
 
 interface Doctor {
@@ -40,6 +40,7 @@ interface Doctor {
   image: string;
   createdAt: string;
   updatedAt: string;
+  isActive: boolean;
 }
 
 const DoctorList = () => {
@@ -67,9 +68,7 @@ const DoctorList = () => {
     fetchDoctors();
   }, []);
 
-  const specialties = Array.from(
-    new Set(doctors.map((doc) => doc.specialty))
-  ).sort();
+  const specialties = Array.from(new Set(doctors.map((doc) => doc.specialty))).sort();
 
   const filteredDoctors = doctors.filter((doctor) => {
     const term = searchTerm.toLowerCase();
@@ -81,30 +80,24 @@ const DoctorList = () => {
     const matchesSpecialty = selectedSpecialty
       ? doctor.specialty === selectedSpecialty
       : true;
-
     return matchesSearch && matchesSpecialty;
   });
 
-  const showDeleteConfirm = (doctor: Doctor) => {
-    confirm({
-      title: `Are you sure you want to delete Dr. ${doctor.firstName} ${doctor.lastName}?`,
-      icon: <ExclamationCircleOutlined />,
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk() {
-        handleDeleteDoctor(doctor.id);
-      },
-    });
-  };
-
-  const handleDeleteDoctor = async (id: string) => {
+  const toggleDoctorStatus = async (doctor: Doctor) => {
     try {
-      await axios.delete(`http://localhost:5000/admin/doctors/${id}`);
-      setDoctors((prev) => prev.filter((doc) => doc.id !== id));
-      message.success("Doctor deleted successfully");
+      const response = await axios.patch(
+        `http://localhost:5000/doctor/doctors/${doctor.id}/toggle-active`
+      );
+      setDoctors((prev) =>
+        prev.map((doc) =>
+          doc.id === doctor.id ? { ...doc, isActive: response.data.isActive } : doc
+        )
+      );
+      message.success(
+        `Doctor ${response.data.isActive ? "enabled" : "disabled"} successfully`
+      );
     } catch (error) {
-      message.error("Failed to delete doctor");
+      message.error("Failed to change doctor status");
     }
   };
 
@@ -124,7 +117,6 @@ const DoctorList = () => {
     try {
       const values = await form.validateFields();
       if (!editingDoctor) return;
-
       const response = await axios.put(
         `http://localhost:5000/admin/doctors/${editingDoctor.id}`,
         values
@@ -159,10 +151,8 @@ const DoctorList = () => {
     },
     {
       title: "Name",
-      dataIndex: "firstName",
       key: "name",
-      render: (_: any, record: Doctor) =>
-        `${record.firstName} ${record.lastName}`,
+      render: (_: any, record: Doctor) => `${record.firstName} ${record.lastName}`,
       sorter: (a: Doctor, b: Doctor) => a.firstName.localeCompare(b.firstName),
       width: 180,
     },
@@ -187,32 +177,37 @@ const DoctorList = () => {
       dataIndex: "fees",
       key: "fees",
       render: (fees: string) => `$${fees}`,
-      sorter: (a: Doctor, b: Doctor) =>
-        Number(a.fees || 0) - Number(b.fees || 0),
+      sorter: (a: Doctor, b: Doctor) => Number(a.fees || 0) - Number(b.fees || 0),
       width: 100,
+    },
+    {
+      title: "Status",
+      key: "status",
+      render: (_: any, record: Doctor) =>
+        record.isActive ? (
+          <Tag color="green">Active</Tag>
+        ) : (
+          <Tag color="red">Disabled</Tag>
+        ),
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, record: Doctor) => (
         <Space>
+          <Button icon={<EyeOutlined />} onClick={() => setViewingDoctor(record)} />
+          <Button icon={<EditOutlined />} onClick={() => openEditModal(record)} type="primary" />
           <Button
-            icon={<EyeOutlined />}
-            onClick={() => setViewingDoctor(record)}
-          />
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
-            type="primary"
-          />
-          <Button
-            icon={<DeleteOutlined />}
-            onClick={() => showDeleteConfirm(record)}
-            danger
-          />
+            icon={record.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+            onClick={() => toggleDoctorStatus(record)}
+            danger={!record.isActive}
+            type={record.isActive ? "default" : "dashed"}
+          >
+            {record.isActive ? "Disable" : "Enable"}
+          </Button>
         </Space>
       ),
-      width: 140,
+      width: 200,
     },
   ];
 
@@ -256,7 +251,7 @@ const DoctorList = () => {
           loading={loading}
           pagination={{ pageSize: 8 }}
           bordered
-          scroll={{ x: 900 }}
+          scroll={{ x: 1000 }}
         />
 
         {/* Edit Modal */}
@@ -270,52 +265,32 @@ const DoctorList = () => {
           }}
           okText="Save Changes"
           cancelText="Cancel"
-          destroyOnHidden
+          destroyOnClose
         >
           <Form form={form} layout="vertical">
-            <Form.Item
-              name="firstName"
-              label="First Name"
-              rules={[{ required: true, message: "Please enter first name" }]}
-            >
+            <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item
-              name="lastName"
-              label="Last Name"
-              rules={[{ required: true, message: "Please enter last name" }]}
-            >
+            <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item
-              name="specialty"
-              label="Specialty"
-              rules={[{ required: true, message: "Please enter specialty" }]}
-            >
+            <Form.Item name="specialty" label="Specialty" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
             <Form.Item
               name="email"
               label="Email"
               rules={[
-                { required: true, message: "Please enter email" },
+                { required: true },
                 { type: "email", message: "Invalid email" },
               ]}
             >
               <Input />
             </Form.Item>
-            <Form.Item
-              name="phoneNumber"
-              label="Phone Number"
-              rules={[{ required: true, message: "Please enter phone number" }]}
-            >
+            <Form.Item name="phoneNumber" label="Phone Number" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item
-              name="fees"
-              label="Fees"
-              rules={[{ required: true, message: "Please enter fees" }]}
-            >
+            <Form.Item name="fees" label="Fees" rules={[{ required: true }]}>
               <Input type="number" min={0} />
             </Form.Item>
           </Form>
@@ -332,7 +307,7 @@ const DoctorList = () => {
             </Button>,
           ]}
           width={600}
-          destroyOnHidden
+          destroyOnClose
         >
           {viewingDoctor && (
             <Space size="large" direction="horizontal" style={{ width: "100%" }}>

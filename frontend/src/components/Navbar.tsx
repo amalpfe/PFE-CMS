@@ -16,15 +16,28 @@ function Navbar() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-
+    const userStr = localStorage.getItem('user');
     setToken(!!savedToken);
 
-    if (user) {
+    if (userStr) {
       try {
-        const parsedUser = JSON.parse(user);
-        setUser(parsedUser);
-        setUserId(parsedUser.id || null);
+        const parsedUser = JSON.parse(userStr);
+        const id = parsedUser.id;
+        setUserId(id);
+
+        // ✅ Fetch updated user data (with image) from backend
+        fetch(`http://localhost:5000/patient/profile/${id}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.image && !data.image.startsWith('data:image')) {
+              data.image = `data:image/jpeg;base64,${data.image}`;
+            }
+            setUser(data);
+            localStorage.setItem('user', JSON.stringify(data)); // Update localStorage
+          })
+          .catch((err) => {
+            console.error('Error fetching user from backend:', err);
+          });
       } catch (err) {
         console.error('Error parsing user from localStorage:', err);
         setUser(null);
@@ -47,13 +60,13 @@ function Navbar() {
     localStorage.removeItem('user');
     setToken(false);
     setUserId(null);
+    setUser(null);
     setShowLogoutModal(false);
     navigate('/login');
   };
 
   return (
     <>
-      {/* Navbar */}
       <div className="flex items-center justify-between px-6 py-2 bg-white shadow-sm rounded-xl mb-4 border border-gray-200 relative">
         <img
           src={logo}
@@ -102,7 +115,6 @@ function Navbar() {
         <div className="flex items-center gap-4">
           {token ? (
             <>
-              {/* Notification Icon */}
               <div className="relative cursor-pointer">
                 <img
                   src={bell}
@@ -115,28 +127,18 @@ function Navbar() {
                 </span>
               </div>
 
-              {/* Profile Menu */}
               <div className="flex items-center gap-2 cursor-pointer group relative">
-             <img
-  className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow object-cover"
-  src={
-    user?.image
-      ? user.image.startsWith('data:image') 
-        ? user.image 
-        : `data:image/jpeg;base64,${user.image}`
-      : prof
-  }
-  alt="Profile"
-/>
+                <img
+                  className="w-7 h-7 rounded-full ring-2 ring-purple-300 shadow object-cover"
+                  src={user?.image || prof}
+                  alt="Profile"
+                />
 
                 <img className="w-4" src={drop} alt="Dropdown icon" />
                 <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block">
                   <div className="min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4">
                     <p
-                      onClick={() => {
-                        if (!userId) return navigate('/login');
-                        navigate(`/my-profile/${userId}`);
-                      }}
+                      onClick={() => navigate(`/my-profile/${userId}`)}
                       className="hover:text-black cursor-pointer"
                     >
                       My Profile
@@ -173,7 +175,6 @@ function Navbar() {
           )}
         </div>
 
-        {/* Error Message Box */}
         {errorMessage && (
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-red-100 text-red-600 px-4 py-2 rounded-md text-sm shadow-lg z-50">
             {errorMessage}
@@ -181,7 +182,6 @@ function Navbar() {
         )}
       </div>
 
-      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg text-center">

@@ -19,6 +19,30 @@ exports.getAllDoctors = async (req, res) => {
 };
 
 
+exports.toggleDoctorStatus = async (req, res) => {
+  const doctorId = req.params.id;
+
+  try {
+    // أولاً: اجلب الحالة الحالية للطبيب
+    const [rows] = await db.execute("SELECT isActive FROM doctor WHERE id = ?", [doctorId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    const currentStatus = rows[0].isActive;
+    const newStatus = !currentStatus;
+
+    // ثانياً: حدّث الحالة
+    await db.execute("UPDATE doctor SET isActive = ? WHERE id = ?", [newStatus, doctorId]);
+
+    res.status(200).json({ isActive: newStatus });
+  } catch (error) {
+    console.error("Toggle doctor status error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
 exports.getDoctorDashboard = async (req, res) => {
   const doctorId = req.params.id;
 

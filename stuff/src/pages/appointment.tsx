@@ -70,7 +70,6 @@ const Appointments = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
 
-  // Available slots for create appointment form
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -155,11 +154,11 @@ const Appointments = () => {
   }, [appointments, viewFilter, doctorFilter, statusFilter, dateFilter, patientSearch]);
 
   const handleCreateAppointment = async (values: any) => {
-      const isoDate = values.appointmentDate.toISOString();
+    const isoDate = values.appointmentDate.toISOString();
     const data = {
       patientId: values.patientId,
       doctorId: values.doctorId,
-       appointmentDate: isoDate,
+      appointmentDate: isoDate,
       appointmentStatus: values.appointmentStatus,
       notes: values.notes || "",
     };
@@ -180,7 +179,6 @@ const Appointments = () => {
   const getFullName = (firstName: string, lastName?: string) =>
     `${firstName ?? ""} ${lastName ?? ""}`.trim();
 
-  // Fetch available slots when modal opens (Create Appointment)
   const openCreateModal = async () => {
     setIsModalOpen(true);
     setLoadingSlots(true);
@@ -193,7 +191,6 @@ const Appointments = () => {
     setLoadingSlots(false);
   };
 
-  // When user selects a slot, auto fill form fields for doctor and appointmentDate
   const onSlotSelect = (slot: AvailableSlot) => {
     form.setFieldsValue({
       doctorId: slot.doctorId,
@@ -223,6 +220,7 @@ const Appointments = () => {
           value={status}
           onChange={(val) => handleStatusChange(record.id, val)}
           style={{ width: 120 }}
+          disabled={["Completed", "Cancelled"].includes(status)} // 🔒 Disables after final states
         >
           {["Scheduled", "Completed", "Cancelled"].map((s) => (
             <Option key={s} value={s}>
@@ -311,7 +309,6 @@ const Appointments = () => {
           pagination={{ pageSize: 8 }}
         />
 
-        {/* Create Appointment Modal */}
         <Modal
           title="Create Appointment"
           open={isModalOpen}
@@ -338,15 +335,13 @@ const Appointments = () => {
               </Select>
             </Form.Item>
 
-            {/* Available slots selection */}
             {availableSlots.length > 0 && (
               <Form.Item label="Select Available Slot (optional)">
                 <Radio.Group
                   style={{ maxHeight: 150, overflowY: "auto", display: "block" }}
                   onChange={(e) => {
                     const slot = availableSlots.find(
-                      (s) =>
-                        `${s.doctorId}-${s.start}` === e.target.value
+                      (s) => `${s.doctorId}-${s.start}` === e.target.value
                     );
                     if (slot) onSlotSelect(slot);
                   }}

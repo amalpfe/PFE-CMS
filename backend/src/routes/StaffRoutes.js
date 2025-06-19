@@ -37,7 +37,10 @@ router.put("/appointments/:id/status", StaffController.updateStatus);
 router.post("/create", StaffController.createStaff);
 
 router.get('/available-appointments', StaffController.getAvailableAppointments);
+// In StaffRoutes.js
+router.patch("/appointments/status/:id", StaffController.updateAppointmentStatus);
 
-module.exports = router;
+
+
 
 module.exports = router;

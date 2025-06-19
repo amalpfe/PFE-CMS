@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Table, Button, message } from "antd";
+import { Table, Button, message, Select, Input, Tag, Modal, Space } from "antd";
 import axios from "axios";
 import Layout from "../components/Layout";
-
-import { Select, Input, Tag, Modal, Space } from 'antd';
+import moment from "moment";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -28,6 +27,7 @@ const Payments = () => {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewFilter, setViewFilter] = useState<"Today" | "All">("Today");
 
   const fetchPayments = async () => {
     try {
@@ -48,6 +48,11 @@ const Payments = () => {
   useEffect(() => {
     let data = [...payments];
 
+    if (viewFilter === "Today") {
+      const today = moment().format("YYYY-MM-DD");
+      data = data.filter((p) => p.appointmentDate.startsWith(today));
+    }
+
     if (filterStatus !== "All") {
       data = data.filter((p) => p.paymentStatus === filterStatus);
     }
@@ -59,7 +64,7 @@ const Payments = () => {
     }
 
     setFilteredPayments(data);
-  }, [filterStatus, searchQuery, payments]);
+  }, [filterStatus, searchQuery, payments, viewFilter]);
 
   const updatePaymentStatus = async (id: number, newStatus: string) => {
     try {
@@ -90,6 +95,7 @@ const Payments = () => {
     {
       title: "Date",
       dataIndex: "appointmentDate",
+      render: (text: string) => moment(text).format("YYYY-MM-DD HH:mm"),
     },
     {
       title: "Amount",
@@ -146,6 +152,16 @@ const Payments = () => {
         <h1 className="text-3xl font-bold mb-6">Payments List</h1>
 
         <Space style={{ marginBottom: 16 }} wrap>
+          <Select
+            defaultValue="Today"
+            value={viewFilter}
+            onChange={(value: "Today" | "All") => setViewFilter(value)}
+            style={{ width: 150 }}
+          >
+            <Option value="Today">Today</Option>
+            <Option value="All">All</Option>
+          </Select>
+
           <Select
             value={filterStatus}
             onChange={(value) => setFilterStatus(value)}
