@@ -1,9 +1,10 @@
+const express = require("express");
+require("dotenv").config();
 
-// // POST /api/assistant
-// const express = require("express");
-// const router = express.Router();
-// const { handleChat } = require("../controllers/AssistantControllers");
+const router = express.Router();
+const controller = require("../controllers/ChatControllers");
 
-// router.post("/assistant", handleChat); // POST /api/assistant
 
-// module.exports = router;
+router.post('/gemini', controller.gemini);
+
+module.exports = router;

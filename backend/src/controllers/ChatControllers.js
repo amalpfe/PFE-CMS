@@ -1,69 +1,48 @@
-const express = require('express');
-const router = express.Router();
-const axios = require('axios');
+const express = require("express");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require("dotenv").config();
 
-const MEDICAL_PROMPT = `
-You are a medical triage assistant. Analyze symptoms and suggest ONLY the medical specialty needed.
-Rules:
-- Output ONLY the specialty name (e.g., "Cardiology")
-- Map symptoms to specialties:
-  • Chest pain → Cardiology
-  • Skin rash → Dermatology
-  • Head injury → Neurology
-  • Abdominal pain → Gastroenterology
-  • Child illness → Pediatrics
-- If unsure → "General Physician"
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-Patient symptoms: 
+// 🔽 Add the symptom-specialty map here
+const symptomSpecialtyMap = {
+  fever: 'General Physician',
+  cough: 'General Physician',
+  headache: 'Neurologist',
+  nausea: 'Gastroenterologist',
+  stomachache: 'Gastroenterologist',
+  skin: 'Dermatologist',
+  rash: 'Dermatologist',
+  acne: 'Dermatologist',
+  menstrual: 'Gynecologist',
+  pregnancy: 'Gynecologist',
+  child: 'Pediatrician',
+  baby: 'Pediatrician',
+};
+
+// AI logic starts here
+exports.gemini = async (req, res) => {
+  const { prompt, modelName = 'gemini-1.5-flash' } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required.' });
+  }
+
+  const instructions = `
+You are a clinic AI assistant. Ask the patient for their symptoms. When they respond, analyze the symptoms and suggest which specialist they should see.
+The possible specialities are: General Physician, Gynecologist, Dermatologist, Pediatrician, Neurologist, Gastroenterologist.
+If symptoms are unclear, ask for more information.
+Respond politely, clearly, and only in a helpful medical tone.
 `;
 
-router.post('/analyze-symptoms', async (req, res) => {
   try {
-    const { symptoms } = req.body;
-    
-    if (!symptoms || typeof symptoms !== 'string') {
-      return res.status(400).json({ error: 'Invalid symptoms input' });
-    }
-
-    const response = await axios.post(
-      'https://api.deepseek.com/v1/chat/completions',
-      {
-        model: "deepseek-chat",
-        messages: [
-          { role: "system", content: MEDICAL_PROMPT },
-          { role: "user", content: symptoms }
-        ],
-        temperature: 0.1,
-        max_tokens: 50
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 5000
-      }
-    );
-
-    const specialty = response.data.choices[0].message.content.trim();
-    res.json({ specialty });
-    
+    const model = genAI.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent([instructions, prompt]);
+    const response = await result.response;
+    const text = response.text();
+    res.json({ text });
   } catch (error) {
-    console.error('DeepSeek API error:', error.response?.data || error.message);
-    
-    // Specific handling for insufficient balance
-    if (error.response?.data?.error?.code === 'invalid_request_error') {
-      return res.status(402).json({ // 402 = Payment Required
-        error: 'API service temporarily unavailable',
-        details: 'Please contact system administrator'
-      });
-    }
-
-    res.status(500).json({ 
-      error: 'AI analysis failed',
-      details: error.message
-    });
+    console.error('Error calling Gemini API:', error);
+    res.status(500).json({ error: 'Failed to generate content from Gemini API.' });
   }
-});
-
-module.exports = router;
+};

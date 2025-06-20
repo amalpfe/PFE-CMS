@@ -8,7 +8,7 @@ const PatientRoutes = require('./src/routes/PatientRoutes');
 const AdminRoutes = require('./src/routes/AdminRoutes');
 const DoctorRoutes=require('./src/routes/DoctorRoutes');
 const StaffRoutes=require('./src/routes/StaffRoutes');
-const chatRoutes = require("./src/controllers/ChatControllers");
+const ChatRoutes = require("./src/routes/ChatRoutes");
 const app = express();
 
 app.use(cors());
@@ -25,12 +25,8 @@ app.use('/patient', PatientRoutes);
 app.use('/admin', AdminRoutes);
 app.use('/doctor',DoctorRoutes);
 app.use("/staff", StaffRoutes);
-
+app.use('/api', ChatRoutes);
 console.log('JWT_SECRET is:', process.env.JWT_SECRET);
-
-
-// app.use("/api", chatRoutes);
-app.use('/api', chatRoutes);
 
 // ✅ Add this route for the root path
 app.get('/', (req, res) => {
