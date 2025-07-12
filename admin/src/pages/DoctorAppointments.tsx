@@ -5,7 +5,7 @@ import axios from "axios";
 import moment from "moment";
 import { Table, Button, Input, Select, Tag, Space } from "antd";
 import DoctorLayout from "../components/DoctorLayout";
-import { SearchOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 

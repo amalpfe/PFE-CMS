@@ -135,10 +135,6 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
-// src/controllers/doctorController.js
-
-
-// controllers/doctorController.js
 
 // GET all doctors
 exports.getDoctors = async (req, res) => {

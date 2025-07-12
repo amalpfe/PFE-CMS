@@ -522,7 +522,7 @@ exports.deleteAvailability = async (req, res) => {
     res.status(500).json({ message: "Error deleting availability" });
   }
 };
-// src/controllers/StaffController.js
+
 
 
 // Get all contact messages

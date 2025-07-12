@@ -23,12 +23,20 @@ router.delete('/appointments/:id', StaffController.deleteAppointment);
 router.get("/patients", StaffController.getPatients);
 router.get("/doctors", StaffController.getDoctors);
 
+
 router.get("/payments", StaffController.getAllPayments);
+
+
 router.put("/payments/:id", StaffController.updatePaymentStatus);
+
+
 router.get("/availability", StaffController.getAvailability);
+
 router.post("/availability", StaffController.addAvailability);
 router.put("/availability/:id", StaffController.updateAvailability);
 router.delete("/availability/:id", StaffController.deleteAvailability);
+
+
 router.get("/contactus", StaffController.getContactMessages);
 router.get("/appointments", StaffController.list);
 router.post("/appointments", StaffController.create);

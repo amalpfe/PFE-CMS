@@ -23,7 +23,7 @@ exports.toggleDoctorStatus = async (req, res) => {
   const doctorId = req.params.id;
 
   try {
-    // أولاً: اجلب الحالة الحالية للطبيب
+  
     const [rows] = await db.execute("SELECT isActive FROM doctor WHERE id = ?", [doctorId]);
     if (rows.length === 0) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -32,7 +32,7 @@ exports.toggleDoctorStatus = async (req, res) => {
     const currentStatus = rows[0].isActive;
     const newStatus = !currentStatus;
 
-    // ثانياً: حدّث الحالة
+    
     await db.execute("UPDATE doctor SET isActive = ? WHERE id = ?", [newStatus, doctorId]);
 
     res.status(200).json({ isActive: newStatus });
@@ -467,7 +467,6 @@ exports.cancelAppointment = async (req, res) => {
   const { appointmentId } = req.params;
 
   try {
-    // 1. Get appointment info (including patientId, patient email, and doctor name)
     const [result] = await db.query(`
       SELECT a.patientId, a.appointmentDate, p.email AS patientEmail,
              d.firstName AS doctorFirstName, d.lastName AS doctorLastName
@@ -482,15 +481,11 @@ exports.cancelAppointment = async (req, res) => {
     }
 
     const { patientId, patientEmail, doctorFirstName, doctorLastName, appointmentDate } = result[0];
-
-    // 2. Update appointment status to "Cancelled"
     await db.query('UPDATE appointment SET appointmentStatus = ? WHERE id = ?', ['Cancelled', appointmentId]);
 
-    // 3. Send notification to patient in database
     const message = `Your appointment with Dr. ${doctorFirstName} ${doctorLastName} on ${appointmentDate} has been cancelled.`;
     await db.query('INSERT INTO notifications (patientId, message) VALUES (?, ?)', [patientId, message]);
 
-    // 4. Send email notification to patient
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {

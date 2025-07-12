@@ -38,7 +38,11 @@ router.get('/:id/appointments/detailed', DoctorController.getAppointmentsByDocto
 
 // Route to get basic appointments for a specific doctor
 router.get("/:id/appointments", DoctorController.getDoctorAppointments);
+
+
 router.put('/appointments/:appointmentId/cancel', DoctorController.cancelAppointment);
+
+
 router.put('/appointments/:appointmentId/complete', DoctorController.completeAppointment);
 
 
@@ -57,5 +61,11 @@ router.get("/patient/:doctorId/patient/:patientId/medical-records", DoctorContro
 // POST route to create an appointment
 router.post('/appointments', DoctorController.createAppointment);
 router.get("/all", DoctorController.getAllDoctors);
+
+
+
 router.patch('/doctors/:id/toggle-active', DoctorController.toggleDoctorStatus);
+
+
+
 module.exports = router;
